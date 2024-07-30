@@ -12,25 +12,28 @@ from gymnasium.wrappers import RecordVideo
 # Configuración del entorno y parámetros
 ENV_NAME = 'BreakoutDeterministic-v4'
 GAME_NAME = ENV_NAME.split('-')[0]
-FRAME_STACK = 4
-GAMMA = 0.99
-LEARNING_RATE = 0.00025
-MEMORY_SIZE = 1000000
+FRAME_STACK = 4                          # Número de frames apilados para representar el estado.
+GAMMA = 0.99                             # Factor de descuento para las recompensas futuras
+LEARNING_RATE = 0.00025                  # Tasa de aprendizaje para el optimizador.
+MEMORY_SIZE = 1000000                    # Tamaño de la memoria de experiencia.
 BATCH_SIZE = 32
-TRAINING_START = 50000
+TRAINING_START = 50000                   # Número de pasos antes de comenzar el entrenamiento.
 INITIAL_EPSILON = 1.0
 FINAL_EPSILON = 0.1
-EXPLORATION_STEPS = 1000000
-UPDATE_TARGET_FREQUENCY = 10000
-SAVE_FREQUENCY = 100000
-EVALUATION_FREQUENCY = 50000
-NUM_EVALUATION_EPISODES = 10
-EPISODES = 10000
+EXPLORATION_STEPS = 1000000              # Número de pasos para disminuir epsilon.
+UPDATE_TARGET_FREQUENCY = 10000          # Frecuencia para actualizar el modelo objetivo.
+SAVE_FREQUENCY = 100000                  # Frecuencia para guardar el modelo.
+EVALUATION_FREQUENCY = 50000             # Frecuencia para evaluar el agente.
+NUM_EVALUATION_EPISODES = 10             # Número de episodios para la evaluación.
+EPISODES = 10000                         # Número total de episodios para el entrenamiento.
+
 
 # Configuración de GPU
 physical_devices = tf.config.list_physical_devices('GPU')
 for gpu in physical_devices:
     tf.config.experimental.set_memory_growth(gpu, True)
+
+print(physical_devices)
 
 # Crear la carpeta principal del juego
 GAME_FOLDER = f'{GAME_NAME}_results'
@@ -46,13 +49,13 @@ os.makedirs(VIDEOS_FOLDER, exist_ok=True)
 
 class DQNAgent:
     def __init__(self, state_shape, action_size):
-        self.state_shape = state_shape
-        self.action_size = action_size
-        self.memory = deque(maxlen=MEMORY_SIZE)
+        self.state_shape = state_shape                # shape de estado 
+        self.action_size = action_size                # numero de acciones posibles
+        self.memory = deque(maxlen=MEMORY_SIZE)       # una cola para almacenar las experiencias 
         self.epsilon = INITIAL_EPSILON
 
-        self.model = self.build_model()
-        self.target_model = self.build_model()
+        self.model = self.build_model()               # red principal para tomar desiciones
+        self.target_model = self.build_model()        # copia de la red que se actualiza periodicamente durante el entrenamiento
         self.update_target_model()
 
         self.loss_history = []
@@ -73,36 +76,37 @@ class DQNAgent:
     def update_target_model(self):
         self.target_model.set_weights(self.model.get_weights())
 
+    # guarda la transición de experiencia en el experience replay
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
 
     def act(self, state):
-        if np.random.rand() <= self.epsilon:
-            return random.randrange(self.action_size)
-        q_values = self.model.predict(state, verbose=0)
-        self.q_values_history.append(np.mean(q_values))
-        return np.argmax(q_values[0])
+        if np.random.rand() <= self.epsilon:               # con una probabilidad igual a epsilon
+            return random.randrange(self.action_size)      # retornar una acción aleatoria
+        q_values = self.model.predict(state, verbose=0)    # calcular Q-values con modelo local
+        self.q_values_history.append(np.max(q_values))     # guardar maximo Q-value
+        return np.argmax(q_values[0])                      # retorna índice de máximo Q-value
 
     def replay(self):
         if len(self.memory) < BATCH_SIZE:
             return
 
         minibatch = random.sample(self.memory, BATCH_SIZE)
-        states, actions, rewards, next_states, dones = zip(*minibatch)
+        states, actions, rewards, next_states, dones = zip(*minibatch)                   # desempaqueta el minibatch en 5 listas separadas
 
-        states = np.array(states).reshape(BATCH_SIZE, *self.state_shape)
+        states = np.array(states).reshape(BATCH_SIZE, *self.state_shape)                 # Convierte la lista de estados y próximos estados en matrices numpy y las reestructura según self.state_shape. Esto asegura que los datos tengan la forma correcta para ser introducidos en la red neuronal.
         next_states = np.array(next_states).reshape(BATCH_SIZE, *self.state_shape)
 
-        targets = self.model.predict(states, verbose=0)
-        next_q_values = self.target_model.predict(next_states, verbose=0)
+        targets = self.model.predict(states, verbose=0)                                  # Predice los valores Q actuales para los estados en el minibatch usando el modelo principal.
+        next_q_values = self.target_model.predict(next_states, verbose=0)                # Predice los valores Q para los próximos estados usando el modelo objetivo.
 
         for i in range(BATCH_SIZE):
-            if dones[i]:
-                targets[i][actions[i]] = rewards[i]
+            if dones[i]:                                                                 # si el episodio ha terminado después de tomar la acción
+                targets[i][actions[i]] = rewards[i]                                      # no hay siguiente estado
             else:
-                targets[i][actions[i]] = rewards[i] + GAMMA * np.max(next_q_values[i])
+                targets[i][actions[i]] = rewards[i] + GAMMA * np.max(next_q_values[i])   # el episodio continua, por lo que se actualiza el valor Q objetivo según la ecuación de Bellman
 
-        history = self.model.fit(states, targets, batch_size=BATCH_SIZE, verbose=0)
+        history = self.model.fit(states, targets, batch_size=BATCH_SIZE, verbose=0)      # Ajusta los pesos del modelo principal usando los estados y los valores Q objetivos calculados.
         self.loss_history.append(history.history['loss'][0])
 
     def update_epsilon(self, step):
