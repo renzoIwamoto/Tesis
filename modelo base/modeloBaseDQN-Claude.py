@@ -20,13 +20,18 @@ BATCH_SIZE = 32
 TRAINING_START = 50000                   # Número de pasos antes de comenzar el entrenamiento.
 INITIAL_EPSILON = 1.0
 FINAL_EPSILON = 0.1
-EXPLORATION_STEPS = 1000000              # Número de pasos para disminuir epsilon.
+EXPLORATION_STEPS = 250000 #1000000              # Número de pasos para disminuir epsilon.
 UPDATE_TARGET_FREQUENCY = 10000          # Frecuencia para actualizar el modelo objetivo.
 SAVE_FREQUENCY = 100000                  # Frecuencia para guardar el modelo.
 EVALUATION_FREQUENCY = 50000             # Frecuencia para evaluar el agente.
 NUM_EVALUATION_EPISODES = 10             # Número de episodios para la evaluación.
 EPISODES = 10000                         # Número total de episodios para el entrenamiento.
+TRAIN_FREQUENCY = 4  # Entrenar cada 4 steps
 
+    ### que el decaimiento sea un poco más rápido (no demasiado, pq no le da tiempo de explorar)
+    ### en lugar de usar el done del jeugo, hacer el ajuste de la red cada N steps
+    ### imprimir el progreso de los steps por cada episodio
+    ### reward negativo en done (tiene que ser el reward más negativo)
 
 # Configuración de GPU
 physical_devices = tf.config.list_physical_devices('GPU')
@@ -88,9 +93,6 @@ class DQNAgent:
         return np.argmax(q_values[0])                      # retorna índice de máximo Q-value
 
     def replay(self):
-        if len(self.memory) < BATCH_SIZE:
-            return
-
         minibatch = random.sample(self.memory, BATCH_SIZE)
         states, actions, rewards, next_states, dones = zip(*minibatch)                   # desempaqueta el minibatch en 5 listas separadas
 
@@ -108,6 +110,7 @@ class DQNAgent:
 
         history = self.model.fit(states, targets, batch_size=BATCH_SIZE, verbose=0)      # Ajusta los pesos del modelo principal usando los estados y los valores Q objetivos calculados.
         self.loss_history.append(history.history['loss'][0])
+
 
     def update_epsilon(self, step):
         self.epsilon = max(FINAL_EPSILON, INITIAL_EPSILON - (step * (INITIAL_EPSILON - FINAL_EPSILON) / EXPLORATION_STEPS))
@@ -190,19 +193,28 @@ def main():
         state, _ = env.reset()
         state, stacked_frames = stack_frames(stacked_frames, state, True)
         episode_reward = 0
+        episode_steps = 0
 
-        for time_step in range(10000):
+        for time_step in range(20000):
             action = agent.act(np.expand_dims(state, axis=0))
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
+            
+            if done:
+                reward = -10  # Reward negativo cuando el episodio termina
+            
             next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
             agent.remember(state, action, reward, next_state, done)
             
             state = next_state
             episode_reward += reward
             total_steps += 1
+            episode_steps += 1
 
-            if total_steps > TRAINING_START:
+            #if episode_steps % 100 == 0:
+            #    print(f"Episode: {episode}, Step: {episode_steps}, Total Steps: {total_steps}")
+
+            if len(agent.memory) >= BATCH_SIZE and total_steps % TRAIN_FREQUENCY == 0:
                 agent.replay()
                 agent.update_epsilon(total_steps)
 
@@ -222,7 +234,7 @@ def main():
                 break
 
         scores.append(episode_reward)
-        print(f"Episode: {episode}, Score: {episode_reward}, Epsilon: {agent.epsilon:.2f}")
+        print(f"Episode: {episode}, Score: {episode_reward}, Epsilon: {agent.epsilon:.2f}, Steps: {episode_steps}")
 
         if episode % 10 == 0:
             plot_training_progress(scores, agent.q_values_history, agent.loss_history, GAME_NAME)
