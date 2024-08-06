@@ -43,7 +43,8 @@ for gpu in physical_devices:
 print(physical_devices)
 
 # Crear la carpeta principal del juego
-GAME_FOLDER = f'{GAME_NAME}_results'
+BASE_FOLDER = '/data/riwamoto'
+GAME_FOLDER = os.path.join(BASE_FOLDER, f'{GAME_NAME}_results')
 os.makedirs(GAME_FOLDER, exist_ok=True)
 
 # Crear subcarpetas
@@ -228,8 +229,8 @@ def main():
                 agent.update_target_model()
 
             if total_steps % SAVE_FREQUENCY == 0:
-                agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_step_{total_steps}_{timestamp}'))
-                with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}_step_{total_steps}_{timestamp}.pkl'), 'wb') as f:
+                agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}'))
+                with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}.pkl'), 'wb') as f:
                     pickle.dump(agent.memory, f)
 
             if total_steps % EVALUATION_FREQUENCY == 0:
