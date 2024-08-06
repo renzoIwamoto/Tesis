@@ -30,6 +30,7 @@ EVALUATION_FREQUENCY = 50000             # Frecuencia para evaluar el agente.
 NUM_EVALUATION_EPISODES = 10             # Número de episodios para la evaluación.
 EPISODES = 5000                         # Número total de episodios para el entrenamiento.
 TRAIN_FREQUENCY = 4  # Entrenar cada 4 steps
+MAX_STEPS_EPISODE = 50000
 
 # Configuración de GPU
 physical_devices = tf.config.list_physical_devices('GPU')
@@ -197,7 +198,7 @@ def main():
         episode_reward = 0
         episode_steps = 0
 
-        for time_step in range(10000):
+        for time_step in range(MAX_STEPS_EPISODE):
             action = agent.act(np.expand_dims(state, axis=0))
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
