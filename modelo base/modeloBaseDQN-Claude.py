@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import pickle
 import os
 from gymnasium.wrappers import RecordVideo
+import datetime
 
 # Configuración del entorno y parámetros
 ENV_NAME = 'BreakoutDeterministic-v4'
@@ -15,23 +16,18 @@ GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4                          # Número de frames apilados para representar el estado.
 GAMMA = 0.99                             # Factor de descuento para las recompensas futuras
 LEARNING_RATE = 0.00025                  # Tasa de aprendizaje para el optimizador.
-MEMORY_SIZE = 1000000                    # Tamaño de la memoria de experiencia.
+MEMORY_SIZE = 250000                     # Tamaño de la memoria de experiencia.
 BATCH_SIZE = 32
 TRAINING_START = 50000                   # Número de pasos antes de comenzar el entrenamiento.
-INITIAL_EPSILON = 1.0
-FINAL_EPSILON = 0.1
+INITIAL_EPSILON = 0.05
+FINAL_EPSILON = 0.05
 EXPLORATION_STEPS = 250000 #1000000              # Número de pasos para disminuir epsilon.
 UPDATE_TARGET_FREQUENCY = 10000          # Frecuencia para actualizar el modelo objetivo.
-SAVE_FREQUENCY = 100000                  # Frecuencia para guardar el modelo.
+SAVE_FREQUENCY = 10000                  # Frecuencia para guardar el modelo.
 EVALUATION_FREQUENCY = 50000             # Frecuencia para evaluar el agente.
 NUM_EVALUATION_EPISODES = 10             # Número de episodios para la evaluación.
-EPISODES = 10000                         # Número total de episodios para el entrenamiento.
+EPISODES = 5000                         # Número total de episodios para el entrenamiento.
 TRAIN_FREQUENCY = 4  # Entrenar cada 4 steps
-
-    ### que el decaimiento sea un poco más rápido (no demasiado, pq no le da tiempo de explorar)
-    ### en lugar de usar el done del jeugo, hacer el ajuste de la red cada N steps
-    ### imprimir el progreso de los steps por cada episodio
-    ### reward negativo en done (tiene que ser el reward más negativo)
 
 # Configuración de GPU
 physical_devices = tf.config.list_physical_devices('GPU')
@@ -156,7 +152,7 @@ def evaluate_agent(env, agent, num_episodes):
         total_rewards.append(episode_reward)
     return np.mean(total_rewards)
 
-def plot_training_progress(scores, avg_q_values, losses, game_name):
+def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp):
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 15))
 
     ax1.plot(scores)
@@ -175,10 +171,14 @@ def plot_training_progress(scores, avg_q_values, losses, game_name):
     ax3.set_ylabel('Loss')
 
     plt.tight_layout()
-    plt.savefig(os.path.join(GAME_FOLDER, f'training_progress_{game_name}.png'))
+    plt.savefig(os.path.join(GAME_FOLDER, f'training_progress_{game_name}_{timestamp}.png'))
     plt.close()
 
+def get_timestamp():
+    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
 def main():
+    timestamp = get_timestamp()
     env = gym.make(ENV_NAME, render_mode="rgb_array")
     state_shape = (84, 84, FRAME_STACK)
     action_size = env.action_space.n
@@ -195,7 +195,7 @@ def main():
         episode_reward = 0
         episode_steps = 0
 
-        for time_step in range(20000):
+        for time_step in range(10000):
             action = agent.act(np.expand_dims(state, axis=0))
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
@@ -222,8 +222,8 @@ def main():
                 agent.update_target_model()
 
             if total_steps % SAVE_FREQUENCY == 0:
-                agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_step_{total_steps}'))
-                with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}_step_{total_steps}.pkl'), 'wb') as f:
+                agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_step_{total_steps}_{timestamp}'))
+                with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}_step_{total_steps}_{timestamp}.pkl'), 'wb') as f:
                     pickle.dump(agent.memory, f)
 
             if total_steps % EVALUATION_FREQUENCY == 0:
@@ -237,16 +237,16 @@ def main():
         print(f"Episode: {episode}, Score: {episode_reward}, Epsilon: {agent.epsilon:.2f}, Steps: {episode_steps}")
 
         if episode % 10 == 0:
-            plot_training_progress(scores, agent.q_values_history, agent.loss_history, GAME_NAME)
+            plot_training_progress(scores, agent.q_values_history, agent.loss_history, GAME_NAME, timestamp)
 
     # Guardar el modelo final y el experience replay
-    agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final'))
-    with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}_final.pkl'), 'wb') as f:
+    agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}'))
+    with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}_final_{timestamp}.pkl'), 'wb') as f:
         pickle.dump(agent.memory, f)
 
     # Grabar video del agente entrenado
     env = gym.make(ENV_NAME, render_mode="rgb_array")
-    env = RecordVideo(env, VIDEOS_FOLDER)
+    env = RecordVideo(env, os.path.join(VIDEOS_FOLDER, f'video_{timestamp}'))
     state, _ = env.reset()
     stacked_frames = deque(maxlen=FRAME_STACK)
     state, stacked_frames = stack_frames(stacked_frames, state, True)
