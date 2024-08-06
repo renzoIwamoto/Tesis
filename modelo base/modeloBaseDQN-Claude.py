@@ -31,7 +31,7 @@ UPDATE_TARGET_FREQUENCY = 10000          # Frecuencia para actualizar el modelo 
 SAVE_FREQUENCY = 10000                  # Frecuencia para guardar el modelo.
 EVALUATION_FREQUENCY = 50000             # Frecuencia para evaluar el agente.
 NUM_EVALUATION_EPISODES = 10             # Número de episodios para la evaluación.
-EPISODES = 5000                         # Número total de episodios para el entrenamiento.
+EPISODES = 3                         # Número total de episodios para el entrenamiento.
 TRAIN_FREQUENCY = 4  # Entrenar cada 4 steps
 MAX_STEPS_EPISODE = 50000
 
@@ -68,6 +68,7 @@ class DQNAgent:
 
         self.loss_history = []
         self.q_values_history = []
+        self.q_values_episode = []                    # Lista para almacenar los Q-values de cada episodio
 
     def build_model(self):
         model = keras.Sequential([
@@ -92,7 +93,7 @@ class DQNAgent:
         if np.random.rand() <= self.epsilon:               # con una probabilidad igual a epsilon
             return random.randrange(self.action_size)      # retornar una acción aleatoria
         q_values = self.model.predict(state, verbose=0)    # calcular Q-values con modelo local
-        self.q_values_history.append(np.max(q_values))     # guardar maximo Q-value
+        self.q_values_episode.append(np.max(q_values))     # guardar maximo Q-value para el episodio actual
         return np.argmax(q_values[0])                      # retorna índice de máximo Q-value
 
     def replay(self):
@@ -168,8 +169,8 @@ def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp):
     ax1.set_ylabel('Score')
 
     ax2.plot(avg_q_values)
-    ax2.set_title(f'{game_name} - Average Q-values')
-    ax2.set_xlabel('Step')
+    ax2.set_title(f'{game_name} - Average Q-values per Episode')
+    ax2.set_xlabel('Episode')
     ax2.set_ylabel('Avg Q-value')
 
     ax3.plot(losses)
@@ -195,12 +196,14 @@ def main():
     
     scores = []
     total_steps = 0
+    avg_q_values_per_episode = []  # Lista para almacenar el promedio de Q-values por episodio
 
     for episode in range(EPISODES):
         state, _ = env.reset()
         state, stacked_frames = stack_frames(stacked_frames, state, True)
         episode_reward = 0
         episode_steps = 0
+        agent.q_values_episode = []  # Reiniciar la lista de Q-values por episodio
 
         for time_step in range(MAX_STEPS_EPISODE):
             action = agent.act(np.expand_dims(state, axis=0))
@@ -240,11 +243,14 @@ def main():
             if done:
                 break
 
+        avg_q_value = np.mean(agent.q_values_episode)  # Calcular el promedio de Q-values por episodio
+        avg_q_values_per_episode.append(avg_q_value)  # Almacenar el promedio
+
         scores.append(episode_reward)
-        print(f"Episode: {episode}, Score: {episode_reward}, Epsilon: {agent.epsilon:.2f}, Steps: {episode_steps}")
+        print(f"Episode: {episode}, Score: {episode_reward}, Epsilon: {agent.epsilon:.2f}, Steps: {episode_steps}, Avg Q-value: {avg_q_value:.2f}")
 
         if episode % 10 == 0:
-            plot_training_progress(scores, agent.q_values_history, agent.loss_history, GAME_NAME, timestamp)
+            plot_training_progress(scores, avg_q_values_per_episode, agent.loss_history, GAME_NAME, timestamp)
 
     # Guardar el modelo final y el experience replay
     agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}'))
