@@ -12,7 +12,8 @@ import datetime
 
 # Configuración del entorno y parámetros
 #ENV_NAME = 'BreakoutDeterministic-v4'
-ENV_NAME = 'MsPacmanDeterministic-v4'
+#ENV_NAME = 'MsPacmanDeterministic-v4'
+ENV_NAME = 'SpaceInvadersDeterministic-v4'
 GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4                          # Número de frames apilados para representar el estado.
 GAMMA = 0.99                             # Factor de descuento para las recompensas futuras
