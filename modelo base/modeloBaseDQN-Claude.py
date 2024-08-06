@@ -12,8 +12,8 @@ import datetime
 
 # Configuración del entorno y parámetros
 #ENV_NAME = 'BreakoutDeterministic-v4'
-ENV_NAME = 'MsPacmanDeterministic-v4'
-#ENV_NAME = 'SpaceInvadersDeterministic-v4'
+#ENV_NAME = 'MsPacmanDeterministic-v4'
+ENV_NAME = 'SpaceInvadersDeterministic-v4'
 #ENV_NAME = 'PongDeterministic-v4'
 #ENV_NAME = 'IceHockeyDeterministic-v4'
 
