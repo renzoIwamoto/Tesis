@@ -31,7 +31,7 @@ UPDATE_TARGET_FREQUENCY = 10000          # Frecuencia para actualizar el modelo 
 SAVE_FREQUENCY = 10000                  # Frecuencia para guardar el modelo.
 EVALUATION_FREQUENCY = 50000             # Frecuencia para evaluar el agente.
 NUM_EVALUATION_EPISODES = 10             # Número de episodios para la evaluación.
-EPISODES = 3                         # Número total de episodios para el entrenamiento.
+EPISODES = 10000                         # Número total de episodios para el entrenamiento.
 TRAIN_FREQUENCY = 4  # Entrenar cada 4 steps
 MAX_STEPS_EPISODE = 50000
 
@@ -210,8 +210,8 @@ def main():
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
             
-            if done:
-                reward = -10  # Reward negativo cuando el episodio termina
+            #if done:
+            #    reward = -10  # Reward negativo cuando el episodio termina
             
             next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
             agent.remember(state, action, reward, next_state, done)
