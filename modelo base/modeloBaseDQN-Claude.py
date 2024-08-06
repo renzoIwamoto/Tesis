@@ -11,8 +11,8 @@ from gymnasium.wrappers import RecordVideo
 import datetime
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'BreakoutDeterministic-v4'
-#ENV_NAME = 'MsPacmanDeterministic-v4'
+#ENV_NAME = 'BreakoutDeterministic-v4'
+ENV_NAME = 'MsPacmanDeterministic-v4'
 #ENV_NAME = 'SpaceInvadersDeterministic-v4'
 #ENV_NAME = 'PongDeterministic-v4'
 #ENV_NAME = 'IceHockeyDeterministic-v4'
@@ -31,7 +31,7 @@ UPDATE_TARGET_FREQUENCY = 10000          # Frecuencia para actualizar el modelo 
 SAVE_FREQUENCY = 10000                  # Frecuencia para guardar el modelo.
 EVALUATION_FREQUENCY = 50000             # Frecuencia para evaluar el agente.
 NUM_EVALUATION_EPISODES = 10             # Número de episodios para la evaluación.
-EPISODES = 10000                         # Número total de episodios para el entrenamiento.
+EPISODES = 5000                         # Número total de episodios para el entrenamiento.
 TRAIN_FREQUENCY = 4  # Entrenar cada 4 steps
 MAX_STEPS_EPISODE = 50000
 
