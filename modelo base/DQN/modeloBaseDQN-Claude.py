@@ -190,7 +190,7 @@ def main():
     os.makedirs(REPLAYS_FOLDER, exist_ok=True)
     os.makedirs(VIDEOS_FOLDER, exist_ok=True)
 
-    env = gym.make(ENV_NAME, render_mode="human")
+    env = gym.make(ENV_NAME, render_mode="rgb_array")
     state_shape = (84, 84, FRAME_STACK)
     action_size = env.action_space.n
 
