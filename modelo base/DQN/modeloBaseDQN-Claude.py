@@ -9,6 +9,7 @@ import pickle
 import os
 from gymnasium.wrappers import RecordVideo
 import datetime
+import psutil  # Importar psutil para monitorear el uso de memoria
 
 # Configuración del entorno y parámetros
 ENV_NAME = 'BreakoutDeterministic-v4'
@@ -21,18 +22,18 @@ GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4                          # Número de frames apilados para representar el estado.
 GAMMA = 0.99                             # Factor de descuento para las recompensas futuras
 LEARNING_RATE = 0.00025                  # Tasa de aprendizaje para el optimizador.
-MEMORY_SIZE = 250000                     # Tamaño de la memoria de experiencia.
+MEMORY_SIZE = 100000                     # Tamaño de la memoria de experiencia.
 BATCH_SIZE = 32
 TRAINING_START = 50000                   # Número de pasos antes de comenzar el entrenamiento.
 INITIAL_EPSILON = 0.05
 FINAL_EPSILON = 0.05
-EXPLORATION_STEPS = 250000 #1000000              # Número de pasos para disminuir epsilon.
+EXPLORATION_STEPS = 250000               # Número de pasos para disminuir epsilon.
 UPDATE_TARGET_FREQUENCY = 10000          # Frecuencia para actualizar el modelo objetivo.
-SAVE_FREQUENCY = 10000                  # Frecuencia para guardar el modelo.
+SAVE_FREQUENCY = 10000                   # Frecuencia para guardar el modelo.
 EVALUATION_FREQUENCY = 50000             # Frecuencia para evaluar el agente.
 NUM_EVALUATION_EPISODES = 10             # Número de episodios para la evaluación.
-EPISODES = 5000                         # Número total de episodios para el entrenamiento.
-TRAIN_FREQUENCY = 4  # Entrenar cada 4 steps
+EPISODES = 2000                          # Número total de episodios para el entrenamiento.
+TRAIN_FREQUENCY = 16                      # Entrenar cada 4 steps
 MAX_STEPS_EPISODE = 50000
 
 # Configuración de GPU
@@ -41,19 +42,15 @@ for gpu in physical_devices:
     tf.config.experimental.set_memory_growth(gpu, True)
 
 print(physical_devices)
+print("Entorno: " + ENV_NAME)
+
+def get_timestamp():
+    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
 # Crear la carpeta principal del juego
 BASE_FOLDER = '/data/riwamoto'
 GAME_FOLDER = os.path.join(BASE_FOLDER, f'{GAME_NAME}_results')
 os.makedirs(GAME_FOLDER, exist_ok=True)
-
-# Crear subcarpetas
-MODELS_FOLDER = os.path.join(GAME_FOLDER, 'models')
-REPLAYS_FOLDER = os.path.join(GAME_FOLDER, 'replays')
-VIDEOS_FOLDER = os.path.join(GAME_FOLDER, 'videos')
-os.makedirs(MODELS_FOLDER, exist_ok=True)
-os.makedirs(REPLAYS_FOLDER, exist_ok=True)
-os.makedirs(VIDEOS_FOLDER, exist_ok=True)
 
 class DQNAgent:
     def __init__(self, state_shape, action_size):
@@ -85,36 +82,34 @@ class DQNAgent:
     def update_target_model(self):
         self.target_model.set_weights(self.model.get_weights())
 
-    # guarda la transición de experiencia en el experience replay
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
 
     def act(self, state):
-        if np.random.rand() <= self.epsilon:               # con una probabilidad igual a epsilon
-            return random.randrange(self.action_size)      # retornar una acción aleatoria
-        q_values = self.model.predict(state, verbose=0)    # calcular Q-values con modelo local
-        self.q_values_episode.append(np.max(q_values))     # guardar maximo Q-value para el episodio actual
-        return np.argmax(q_values[0])                      # retorna índice de máximo Q-value
+        if np.random.rand() <= self.epsilon:
+            return random.randrange(self.action_size)
+        q_values = self.model.predict(state, verbose=0)
+        self.q_values_episode.append(np.max(q_values))
+        return np.argmax(q_values[0])
 
     def replay(self):
         minibatch = random.sample(self.memory, BATCH_SIZE)
-        states, actions, rewards, next_states, dones = zip(*minibatch)                   # desempaqueta el minibatch en 5 listas separadas
+        states, actions, rewards, next_states, dones = zip(*minibatch)
 
-        states = np.array(states).reshape(BATCH_SIZE, *self.state_shape)                 # Convierte la lista de estados y próximos estados en matrices numpy y las reestructura según self.state_shape. Esto asegura que los datos tengan la forma correcta para ser introducidos en la red neuronal.
+        states = np.array(states).reshape(BATCH_SIZE, *self.state_shape)
         next_states = np.array(next_states).reshape(BATCH_SIZE, *self.state_shape)
 
-        targets = self.model.predict(states, verbose=0)                                  # Predice los valores Q actuales para los estados en el minibatch usando el modelo principal.
-        next_q_values = self.target_model.predict(next_states, verbose=0)                # Predice los valores Q para los próximos estados usando el modelo objetivo.
+        targets = self.model.predict(states, verbose=0)
+        next_q_values = self.target_model.predict(next_states, verbose=0)
 
         for i in range(BATCH_SIZE):
-            if dones[i]:                                                                 # si el episodio ha terminado después de tomar la acción
-                targets[i][actions[i]] = rewards[i]                                      # no hay siguiente estado
+            if dones[i]:
+                targets[i][actions[i]] = rewards[i]
             else:
-                targets[i][actions[i]] = rewards[i] + GAMMA * np.max(next_q_values[i])   # el episodio continua, por lo que se actualiza el valor Q objetivo según la ecuación de Bellman
+                targets[i][actions[i]] = rewards[i] + GAMMA * np.max(next_q_values[i])
 
-        history = self.model.fit(states, targets, batch_size=BATCH_SIZE, verbose=0)      # Ajusta los pesos del modelo principal usando los estados y los valores Q objetivos calculados.
+        history = self.model.fit(states, targets, batch_size=BATCH_SIZE, verbose=0)
         self.loss_history.append(history.history['loss'][0])
-
 
     def update_epsilon(self, step):
         self.epsilon = max(FINAL_EPSILON, INITIAL_EPSILON - (step * (INITIAL_EPSILON - FINAL_EPSILON) / EXPLORATION_STEPS))
@@ -160,7 +155,7 @@ def evaluate_agent(env, agent, num_episodes):
         total_rewards.append(episode_reward)
     return np.mean(total_rewards)
 
-def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp):
+def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp, run_folder):
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 15))
 
     ax1.plot(scores)
@@ -179,14 +174,21 @@ def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp):
     ax3.set_ylabel('Loss')
 
     plt.tight_layout()
-    plt.savefig(os.path.join(GAME_FOLDER, f'training_progress_{game_name}_{timestamp}.png'))
+    plt.savefig(os.path.join(run_folder, f'training_progress_{game_name}_{timestamp}.png'))
     plt.close()
-
-def get_timestamp():
-    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
 def main():
     timestamp = get_timestamp()
+    RUN_FOLDER = os.path.join(GAME_FOLDER, f'run_{timestamp}')
+    os.makedirs(RUN_FOLDER, exist_ok=True)
+
+    MODELS_FOLDER = os.path.join(RUN_FOLDER, 'models')
+    REPLAYS_FOLDER = os.path.join(RUN_FOLDER, 'replays')
+    VIDEOS_FOLDER = os.path.join(RUN_FOLDER, 'videos')
+    os.makedirs(MODELS_FOLDER, exist_ok=True)
+    os.makedirs(REPLAYS_FOLDER, exist_ok=True)
+    os.makedirs(VIDEOS_FOLDER, exist_ok=True)
+
     env = gym.make(ENV_NAME, render_mode="rgb_array")
     state_shape = (84, 84, FRAME_STACK)
     action_size = env.action_space.n
@@ -210,9 +212,6 @@ def main():
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
             
-            #if done:
-            #    reward = -10  # Reward negativo cuando el episodio termina
-            
             next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
             agent.remember(state, action, reward, next_state, done)
             
@@ -220,9 +219,6 @@ def main():
             episode_reward += reward
             total_steps += 1
             episode_steps += 1
-
-            #if episode_steps % 100 == 0:
-            #    print(f"Episode: {episode}, Step: {episode_steps}, Total Steps: {total_steps}")
 
             if len(agent.memory) >= BATCH_SIZE and total_steps % TRAIN_FREQUENCY == 0:
                 agent.replay()
@@ -232,8 +228,8 @@ def main():
                 agent.update_target_model()
 
             if total_steps % SAVE_FREQUENCY == 0:
-                agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}'))
-                with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}.pkl'), 'wb') as f:
+                agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_{total_steps}'))
+                with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}_{total_steps}.pkl'), 'wb') as f:
                     pickle.dump(agent.memory, f)
 
             if total_steps % EVALUATION_FREQUENCY == 0:
@@ -247,10 +243,14 @@ def main():
         avg_q_values_per_episode.append(avg_q_value)  # Almacenar el promedio
 
         scores.append(episode_reward)
-        print(f"Episode: {episode}, Score: {episode_reward}, Epsilon: {agent.epsilon:.2f}, Steps: {episode_steps}, Avg Q-value: {avg_q_value:.2f}")
+        print(f"Episode: {episode}, Score: {episode_reward}, Epsilon: {agent.epsilon:.2f}, Steps: {episode_steps}, Avg Q-value: {avg_q_value:.2f}, Exp replay: {len(agent.memory)}")
+
+        # Imprimir uso de memoria
+        memory_info = psutil.virtual_memory()
+        print(f"Memory Usage: {memory_info.percent}%")
 
         if episode % 10 == 0:
-            plot_training_progress(scores, avg_q_values_per_episode, agent.loss_history, GAME_NAME, timestamp)
+            plot_training_progress(scores, avg_q_values_per_episode, agent.loss_history, GAME_NAME, timestamp, RUN_FOLDER)
 
     # Guardar el modelo final y el experience replay
     agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}'))
