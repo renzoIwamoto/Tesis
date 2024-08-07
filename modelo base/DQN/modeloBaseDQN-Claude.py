@@ -10,6 +10,7 @@ import os
 from gymnasium.wrappers import RecordVideo
 import datetime
 import psutil  # Importar psutil para monitorear el uso de memoria
+import gc
 
 # Configuración del entorno y parámetros
 ENV_NAME = 'BreakoutDeterministic-v4'
@@ -22,13 +23,13 @@ GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4                          # Número de frames apilados para representar el estado.
 GAMMA = 0.99                             # Factor de descuento para las recompensas futuras
 LEARNING_RATE = 0.00025                  # Tasa de aprendizaje para el optimizador.
-MEMORY_SIZE = 100000                     # Tamaño de la memoria de experiencia.
+MEMORY_SIZE = 50000                     # Tamaño de la memoria de experiencia.
 BATCH_SIZE = 32
 TRAINING_START = 50000                   # Número de pasos antes de comenzar el entrenamiento.
-INITIAL_EPSILON = 0.05
-FINAL_EPSILON = 0.05
+INITIAL_EPSILON = 0.3
+FINAL_EPSILON = 0.01
 EXPLORATION_STEPS = 250000               # Número de pasos para disminuir epsilon.
-UPDATE_TARGET_FREQUENCY = 10000          # Frecuencia para actualizar el modelo objetivo.
+UPDATE_TARGET_FREQUENCY = 2000          # Frecuencia para actualizar el modelo objetivo.
 SAVE_FREQUENCY = 10000                   # Frecuencia para guardar el modelo.
 EVALUATION_FREQUENCY = 50000             # Frecuencia para evaluar el agente.
 NUM_EVALUATION_EPISODES = 10             # Número de episodios para la evaluación.
@@ -109,7 +110,7 @@ class DQNAgent:
                 targets[i][actions[i]] = rewards[i] + GAMMA * np.max(next_q_values[i])
 
         history = self.model.fit(states, targets, batch_size=BATCH_SIZE, verbose=0)
-        self.loss_history.append(history.history['loss'][0])
+        #self.loss_history.append(history.history['loss'][0])
 
     def update_epsilon(self, step):
         self.epsilon = max(FINAL_EPSILON, INITIAL_EPSILON - (step * (INITIAL_EPSILON - FINAL_EPSILON) / EXPLORATION_STEPS))
@@ -168,10 +169,10 @@ def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp, r
     ax2.set_xlabel('Episode')
     ax2.set_ylabel('Avg Q-value')
 
-    ax3.plot(losses)
-    ax3.set_title(f'{game_name} - Loss')
-    ax3.set_xlabel('Training Step')
-    ax3.set_ylabel('Loss')
+    #.plot(losses)
+    #ax3.set_title(f'{game_name} - Loss')
+    #ax3.set_xlabel('Training Step')
+    #ax3.set_ylabel('Loss')
 
     plt.tight_layout()
     plt.savefig(os.path.join(run_folder, f'training_progress_{game_name}_{timestamp}.png'))
@@ -189,7 +190,7 @@ def main():
     os.makedirs(REPLAYS_FOLDER, exist_ok=True)
     os.makedirs(VIDEOS_FOLDER, exist_ok=True)
 
-    env = gym.make(ENV_NAME, render_mode="rgb_array")
+    env = gym.make(ENV_NAME, render_mode="human")
     state_shape = (84, 84, FRAME_STACK)
     action_size = env.action_space.n
 
@@ -228,8 +229,8 @@ def main():
                 agent.update_target_model()
 
             if total_steps % SAVE_FREQUENCY == 0:
-                agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_{total_steps}'))
-                with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}_{total_steps}.pkl'), 'wb') as f:
+                agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}'))
+                with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}.pkl'), 'wb') as f:
                     pickle.dump(agent.memory, f)
 
             if total_steps % EVALUATION_FREQUENCY == 0:
@@ -243,12 +244,10 @@ def main():
         avg_q_values_per_episode.append(avg_q_value)  # Almacenar el promedio
 
         scores.append(episode_reward)
-        print(f"Episode: {episode}, Score: {episode_reward}, Epsilon: {agent.epsilon:.2f}, Steps: {episode_steps}, Avg Q-value: {avg_q_value:.2f}, Exp replay: {len(agent.memory)}")
-
         # Imprimir uso de memoria
         memory_info = psutil.virtual_memory()
-        print(f"Memory Usage: {memory_info.percent}%")
-
+        print(f"Episode: {episode}, Score: {episode_reward}, Epsilon: {agent.epsilon:.2f}, Steps: {episode_steps}, Avg Q-value: {avg_q_value:.2f}, Exp replay: {len(agent.memory)}, Memory Usage: {memory_info.percent}%")
+        gc.collect()
         if episode % 10 == 0:
             plot_training_progress(scores, avg_q_values_per_episode, agent.loss_history, GAME_NAME, timestamp, RUN_FOLDER)
 
