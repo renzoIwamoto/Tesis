@@ -11,6 +11,7 @@ from gymnasium.wrappers import RecordVideo
 import datetime
 import psutil  # Importar psutil para monitorear el uso de memoria
 import gc
+import keras.backend as K
 
 # Configuración del entorno y parámetros
 ENV_NAME = 'BreakoutDeterministic-v4'
@@ -27,10 +28,10 @@ MEMORY_SIZE = 50000                     # Tamaño de la memoria de experiencia.
 BATCH_SIZE = 32
 TRAINING_START = 50000                   # Número de pasos antes de comenzar el entrenamiento.
 INITIAL_EPSILON = 0.3
-FINAL_EPSILON = 0.01
+FINAL_EPSILON = 0.05
 EXPLORATION_STEPS = 250000               # Número de pasos para disminuir epsilon.
-UPDATE_TARGET_FREQUENCY = 2000          # Frecuencia para actualizar el modelo objetivo.
-SAVE_FREQUENCY = 10000                   # Frecuencia para guardar el modelo.
+UPDATE_TARGET_FREQUENCY = 1000          # Frecuencia para actualizar el modelo objetivo.
+SAVE_FREQUENCY = 50000                   # Frecuencia para guardar el modelo.
 EVALUATION_FREQUENCY = 50000             # Frecuencia para evaluar el agente.
 NUM_EVALUATION_EPISODES = 10             # Número de episodios para la evaluación.
 EPISODES = 2000                          # Número total de episodios para el entrenamiento.
@@ -71,10 +72,16 @@ class DQNAgent:
     def build_model(self):
         model = keras.Sequential([
             keras.layers.Conv2D(32, (8, 8), strides=(4, 4), activation='relu', input_shape=self.state_shape),
+            keras.layers.BatchNormalization(),
             keras.layers.Conv2D(64, (4, 4), strides=(2, 2), activation='relu'),
+            keras.layers.BatchNormalization(),
             keras.layers.Conv2D(64, (3, 3), strides=(1, 1), activation='relu'),
+            keras.layers.BatchNormalization(),
+            keras.layers.Conv2D(128, (3, 3), strides=(1, 1), activation='relu'),
+            keras.layers.BatchNormalization(),
             keras.layers.Flatten(),
             keras.layers.Dense(512, activation='relu'),
+            keras.layers.Dense(256, activation='relu'),
             keras.layers.Dense(self.action_size, activation='linear')
         ])
         model.compile(optimizer=keras.optimizers.Adam(learning_rate=LEARNING_RATE), loss='huber_loss')
@@ -248,8 +255,14 @@ def main():
         memory_info = psutil.virtual_memory()
         print(f"Episode: {episode}, Score: {episode_reward}, Epsilon: {agent.epsilon:.2f}, Steps: {episode_steps}, Avg Q-value: {avg_q_value:.2f}, Exp replay: {len(agent.memory)}, Memory Usage: {memory_info.percent}%")
         gc.collect()
+        K.clear_session()
         if episode % 10 == 0:
             plot_training_progress(scores, avg_q_values_per_episode, agent.loss_history, GAME_NAME, timestamp, RUN_FOLDER)
+            print(f"Total: {memory_info.total / (1024 ** 3):.2f} GB")
+            print(f"Available: {memory_info.available / (1024 ** 3):.2f} GB")
+            print(f"Used: {memory_info.used / (1024 ** 3):.2f} GB")
+            print(f"Free: {memory_info.free / (1024 ** 3):.2f} GB")
+            print(f"Percentage: {memory_info.percent}%")
 
     # Guardar el modelo final y el experience replay
     agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}'))
