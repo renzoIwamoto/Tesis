@@ -83,10 +83,11 @@ class DQNAgent:
     def select_action(self, state, env):
         if np.random.rand() <= self.epsilon:
             return env.action_space.sample()
-        state = torch.from_numpy(state).float().unsqueeze(0).to(self.device)
-        q_values = self.q_network(state)
-        self.q_values_episode.append(torch.max(q_values).item())
-        return np.argmax(q_values.cpu().data.numpy())
+        with torch.no_grad():
+            state = torch.from_numpy(state).float().unsqueeze(0).to(self.device)
+            q_values = self.q_network(state)
+            self.q_values_episode.append(torch.max(q_values).item())
+            return np.argmax(q_values.cpu().data.numpy())
 
     def replay(self):
         if len(self.memory) < BATCH_SIZE:
@@ -143,7 +144,6 @@ def evaluate_agent(env, agent, num_episodes):
         done = False
         episode_reward = 0
         while not done:
-            state = torch.from_numpy(state).float().unsqueeze(0).to(agent.device)
             action = agent.select_action(state, env)
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
