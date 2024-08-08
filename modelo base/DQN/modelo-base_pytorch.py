@@ -12,6 +12,7 @@ import pickle
 import psutil
 import gc
 import cv2
+import matplotlib.pyplot as plt
 from gymnasium.wrappers import RecordVideo
 
 # Configuración del entorno y parámetros
@@ -20,17 +21,17 @@ GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4
 GAMMA = 0.99
 LEARNING_RATE = 0.00025
-MEMORY_SIZE = 100000
-BATCH_SIZE = 64
+MEMORY_SIZE = 200000
+BATCH_SIZE = 128
 TRAINING_START = 50000
-INITIAL_EPSILON = 0.3
+INITIAL_EPSILON = 1
 FINAL_EPSILON = 0.05
 EXPLORATION_STEPS = 500000
-UPDATE_TARGET_FREQUENCY = 1000
+UPDATE_TARGET_FREQUENCY = 160
 SAVE_FREQUENCY = 50000
-EVALUATION_FREQUENCY = 50000
+EVALUATION_FREQUENCY = 100000
 NUM_EVALUATION_EPISODES = 10
-EPISODES = 10000
+EPISODES = 15000
 TRAIN_FREQUENCY = 16
 MAX_STEPS_EPISODE = 50000
 
@@ -154,8 +155,26 @@ def evaluate_agent(env, agent, num_episodes):
     return np.mean(total_rewards)
 
 def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp, run_folder):
-    # Implementar la función de visualización
-    pass
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 15))
+
+    ax1.plot(scores)
+    ax1.set_title(f'{game_name} - Episode Scores')
+    ax1.set_xlabel('Episode')
+    ax1.set_ylabel('Score')
+
+    ax2.plot(avg_q_values)
+    ax2.set_title(f'{game_name} - Average Q-values per Episode')
+    ax2.set_xlabel('Episode')
+    ax2.set_ylabel('Avg Q-value')
+
+    ax3.plot(losses)
+    ax3.set_title(f'{game_name} - Loss')
+    ax3.set_xlabel('Training Step')
+    ax3.set_ylabel('Loss')
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(run_folder, f'training_progress_{game_name}_{timestamp}.png'))
+    plt.close()
 
 def main():
     timestamp = get_timestamp()
@@ -179,6 +198,7 @@ def main():
     scores = []
     total_steps = 0
     avg_q_values_per_episode = []
+    losses = []
 
     for episode in range(EPISODES):
         state, _ = env.reset()
@@ -201,6 +221,7 @@ def main():
             if total_steps >= TRAINING_START and total_steps % TRAIN_FREQUENCY == 0:
                 agent.replay()
                 agent.update_epsilon(total_steps)
+                losses.append(agent.loss_history[-1])
 
             if total_steps % UPDATE_TARGET_FREQUENCY == 0:
                 agent.update_target_model()
@@ -219,15 +240,14 @@ def main():
 
         avg_q_value = np.mean(agent.q_values_episode)
         avg_q_values_per_episode.append(avg_q_value)
-
         scores.append(episode_reward)
         memory_info = psutil.virtual_memory()
         print(f"Episode: {episode}, Score: {episode_reward}, Epsilon: {agent.epsilon:.2f}, Steps: {episode_steps}, Avg Q-value: {avg_q_value:.2f}, Exp replay: {len(agent.memory)}, Memory Usage: {memory_info.percent}%")
         gc.collect()
         torch.cuda.empty_cache()
 
-        if episode % 10 == 0:
-            plot_training_progress(scores, avg_q_values_per_episode, agent.loss_history, GAME_NAME, timestamp, RUN_FOLDER)
+        if episode % 20 == 0:
+            plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp, RUN_FOLDER)
             print(f"Total: {memory_info.total / (1024 ** 3):.2f} GB")
             print(f"Available: {memory_info.available / (1024 ** 3):.2f} GB")
             print(f"Used: {memory_info.used / (1024 ** 3):.2f} GB")
