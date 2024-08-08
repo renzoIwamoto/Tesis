@@ -14,7 +14,7 @@ import gc
 import keras.backend as K
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'BreakoutDeterministic-v4'
+ENV_NAME = 'BreakoutNoFrameskip-v4'
 #ENV_NAME = 'MsPacmanDeterministic-v4'
 #ENV_NAME = 'SpaceInvadersDeterministic-v4'
 #ENV_NAME = 'PongDeterministic-v4'
@@ -25,7 +25,7 @@ FRAME_STACK = 4                          # Número de frames apilados para repre
 GAMMA = 0.99                             # Factor de descuento para las recompensas futuras
 LEARNING_RATE = 0.00025                  # Tasa de aprendizaje para el optimizador.
 MEMORY_SIZE = 50000                     # Tamaño de la memoria de experiencia.
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 TRAINING_START = 50000                   # Número de pasos antes de comenzar el entrenamiento.
 INITIAL_EPSILON = 0.3
 FINAL_EPSILON = 0.05
@@ -72,16 +72,10 @@ class DQNAgent:
     def build_model(self):
         model = keras.Sequential([
             keras.layers.Conv2D(32, (8, 8), strides=(4, 4), activation='relu', input_shape=self.state_shape),
-            keras.layers.BatchNormalization(),
             keras.layers.Conv2D(64, (4, 4), strides=(2, 2), activation='relu'),
-            keras.layers.BatchNormalization(),
             keras.layers.Conv2D(64, (3, 3), strides=(1, 1), activation='relu'),
-            keras.layers.BatchNormalization(),
-            keras.layers.Conv2D(128, (3, 3), strides=(1, 1), activation='relu'),
-            keras.layers.BatchNormalization(),
             keras.layers.Flatten(),
             keras.layers.Dense(512, activation='relu'),
-            keras.layers.Dense(256, activation='relu'),
             keras.layers.Dense(self.action_size, activation='linear')
         ])
         model.compile(optimizer=keras.optimizers.Adam(learning_rate=LEARNING_RATE), loss='huber_loss')
@@ -155,7 +149,7 @@ def evaluate_agent(env, agent, num_episodes):
         episode_reward = 0
         while not done:
             action = agent.act(np.expand_dims(state, axis=0))
-            next_state, reward, terminated, truncated, _ = env.step(action)
+            next_state, reward, terminated, truncated, _ = env.step(action) # verificar shape de state que se devuelve y cuando lo devuelve
             done = terminated or truncated
             next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
             state = next_state
@@ -256,6 +250,7 @@ def main():
         print(f"Episode: {episode}, Score: {episode_reward}, Epsilon: {agent.epsilon:.2f}, Steps: {episode_steps}, Avg Q-value: {avg_q_value:.2f}, Exp replay: {len(agent.memory)}, Memory Usage: {memory_info.percent}%")
         gc.collect()
         K.clear_session()
+        
         if episode % 10 == 0:
             plot_training_progress(scores, avg_q_values_per_episode, agent.loss_history, GAME_NAME, timestamp, RUN_FOLDER)
             print(f"Total: {memory_info.total / (1024 ** 3):.2f} GB")

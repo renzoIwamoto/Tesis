@@ -29,6 +29,14 @@ VIDEOS_FOLDER = os.path.join(GAME_FOLDER, 'videos')
 os.makedirs(MODELS_FOLDER, exist_ok=True)
 os.makedirs(VIDEOS_FOLDER, exist_ok=True)
 
+# Configuración de GPU
+physical_devices = tf.config.list_physical_devices('GPU')
+for gpu in physical_devices:
+    tf.config.experimental.set_memory_growth(gpu, True)
+
+print(physical_devices)
+print("Entorno: " + ENV_NAME)
+
 class ActorCriticModel(keras.Model):
     def __init__(self, state_shape, action_size):
         super(ActorCriticModel, self).__init__()
