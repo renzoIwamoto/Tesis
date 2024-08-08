@@ -15,12 +15,12 @@ import cv2
 from gymnasium.wrappers import RecordVideo
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'BreakoutNoFrameskip-v4'
+ENV_NAME = 'BreakoutDeterministic-v4'  # Cambiado a entorno determinista
 GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4
 GAMMA = 0.99
 LEARNING_RATE = 0.00025
-MEMORY_SIZE = 50000
+MEMORY_SIZE = 250000
 BATCH_SIZE = 64
 TRAINING_START = 50000
 INITIAL_EPSILON = 0.3
