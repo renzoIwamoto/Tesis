@@ -34,7 +34,7 @@ UPDATE_TARGET_FREQUENCY = 1000          # Frecuencia para actualizar el modelo o
 SAVE_FREQUENCY = 50000                   # Frecuencia para guardar el modelo.
 EVALUATION_FREQUENCY = 50000             # Frecuencia para evaluar el agente.
 NUM_EVALUATION_EPISODES = 10             # Número de episodios para la evaluación.
-EPISODES = 2000                          # Número total de episodios para el entrenamiento.
+EPISODES = 3000                          # Número total de episodios para el entrenamiento.
 TRAIN_FREQUENCY = 16                      # Entrenar cada 4 steps
 MAX_STEPS_EPISODE = 50000
 
