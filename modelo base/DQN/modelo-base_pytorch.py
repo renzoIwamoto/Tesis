@@ -256,7 +256,7 @@ def main():
         avg_q_values_per_episode.append(avg_q_value)
         scores.append(episode_reward)
         memory_info = psutil.virtual_memory()
-        logging.info(f"Episode: {episode}, Score: {episode_reward}, Epsilon: {agent.epsilon:.2f}, Steps: {episode_steps}, Avg Q-value: {avg_q_value:.2f}, Exp replay: {len(agent.memory)}, Memory Usage: {memory_info.percent}%")
+        logging.info(f"Ep.: {episode}, Score: {episode_reward}, e: {agent.epsilon:.2f}, Steps: {episode_steps}, Avg Q-val: {avg_q_value:.2f}, replay: {len(agent.memory)}, Mem Usage: {memory_info.percent}%")
         gc.collect()
         torch.cuda.empty_cache()
 
