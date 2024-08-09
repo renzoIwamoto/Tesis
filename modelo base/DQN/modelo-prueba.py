@@ -42,7 +42,7 @@ def get_timestamp():
 
 # Crear la carpeta principal del juego
 BASE_FOLDER = '/data/riwamoto'
-GAME_FOLDER = os.path.join(BASE_FOLDER, f'{GAME_NAME}_results')
+GAME_FOLDER = os.path.join(BASE_FOLDER, f'{GAME_NAME}_results_model2')
 os.makedirs(GAME_FOLDER, exist_ok=True)
 
 # Configuración del logging
