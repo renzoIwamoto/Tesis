@@ -23,9 +23,9 @@ GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4
 GAMMA = 0.99
 LEARNING_RATE = 0.0001
-MEMORY_SIZE = 200000
-BATCH_SIZE = 256
-TRAINING_START = 50000
+MEMORY_SIZE = 100000  # Ajustado a 100000
+BATCH_SIZE = 32
+TRAINING_START = 10000
 INITIAL_EPSILON = 1
 FINAL_EPSILON = 0.01
 EXPLORATION_STEPS = 1000000
@@ -34,7 +34,7 @@ SAVE_FREQUENCY = 100000
 EVALUATION_FREQUENCY = 100000
 NUM_EVALUATION_EPISODES = 10
 EPISODES = 15000
-TRAIN_FREQUENCY = 32
+TRAIN_FREQUENCY = 4
 MAX_STEPS_EPISODE = 50000
 
 def get_timestamp():
@@ -42,7 +42,7 @@ def get_timestamp():
 
 # Crear la carpeta principal del juego
 BASE_FOLDER = '/data/riwamoto'
-GAME_FOLDER = os.path.join(BASE_FOLDER, f'{GAME_NAME}_results_model2')
+GAME_FOLDER = os.path.join(BASE_FOLDER, f'{GAME_NAME}_results')
 os.makedirs(GAME_FOLDER, exist_ok=True)
 
 # Configuración del logging
@@ -83,10 +83,8 @@ class DQNAgent:
             nn.ReLU(),
             nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=0),
             nn.ReLU(),
-            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=0),
-            nn.ReLU(),
             nn.Flatten(),
-            nn.Linear(128 * 3 * 3, 512),
+            nn.Linear(64 * 7 * 7, 512),
             nn.ReLU(),
             nn.Linear(512, 256),
             nn.ReLU(),
@@ -116,15 +114,15 @@ class DQNAgent:
         minibatch = random.sample(self.memory, BATCH_SIZE)
         states, actions, rewards, next_states, dones = zip(*minibatch)
 
-        states = torch.from_numpy(np.stack(states)).float().to(self.device)
-        actions = torch.from_numpy(np.vstack(actions)).long().to(self.device)
-        rewards = torch.from_numpy(np.vstack(rewards)).float().to(self.device)
-        next_states = torch.from_numpy(np.stack(next_states)).float().to(self.device)
-        dones = torch.from_numpy(np.vstack(dones).astype(np.uint8)).float().to(self.device)
+        states = torch.from_numpy(np.array(states)).float().to(self.device)
+        actions = torch.from_numpy(np.array(actions)).long().to(self.device)
+        rewards = torch.from_numpy(np.array(rewards)).float().to(self.device)
+        next_states = torch.from_numpy(np.array(next_states)).float().to(self.device)
+        dones = torch.from_numpy(np.array(dones).astype(np.uint8)).float().to(self.device)
 
-        q_values = self.q_network(states).gather(1, actions)
+        q_values = self.q_network(states).gather(1, actions.unsqueeze(1))
         next_q_values = self.target_q_network(next_states).detach().max(1)[0].unsqueeze(1)
-        target_q_values = rewards + GAMMA * next_q_values * (1 - dones)
+        target_q_values = rewards.unsqueeze(1) + GAMMA * next_q_values * (1 - dones.unsqueeze(1))
         loss = F.mse_loss(q_values, target_q_values)
         
         self.optimizer.zero_grad()
@@ -146,7 +144,7 @@ class DQNAgent:
         self.update_target_model()
 
 def preprocess_frame(frame):
-    gray = (0.2989 * frame[:, :, 0] + 0.5870 * frame[:, :, 1] + 0.1140 * frame[:, :, 2]).astype(np.uint8)
+    gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
     resized = cv2.resize(gray, (84, 84), interpolation=cv2.INTER_AREA)
     return resized / 255.0
 
