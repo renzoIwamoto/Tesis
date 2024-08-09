@@ -20,18 +20,18 @@ ENV_NAME = 'BreakoutDeterministic-v4'  # Cambiado a entorno determinista
 GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4
 GAMMA = 0.99
-LEARNING_RATE = 0.00025
+LEARNING_RATE = 0.0001
 MEMORY_SIZE = 200000
-BATCH_SIZE = 64
+BATCH_SIZE = 128
 TRAINING_START = 50000
 INITIAL_EPSILON = 1
-FINAL_EPSILON = 0.05
-EXPLORATION_STEPS = 500000
-UPDATE_TARGET_FREQUENCY = 500
-SAVE_FREQUENCY = 50000
+FINAL_EPSILON = 0.01
+EXPLORATION_STEPS = 750000
+UPDATE_TARGET_FREQUENCY = 1000
+SAVE_FREQUENCY = 100000
 EVALUATION_FREQUENCY = 100000
 NUM_EVALUATION_EPISODES = 10
-EPISODES = 15000
+EPISODES = 20000
 TRAIN_FREQUENCY = 16
 MAX_STEPS_EPISODE = 50000
 
@@ -173,7 +173,7 @@ def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp, r
     ax3.set_ylabel('Loss')
 
     plt.tight_layout()
-    plt.savefig(os.path.join(run_folder, f'training_progress_{game_name}_{timestamp}.png'))
+    plt.savefig(os.path.join(run_folder, f'training_progress_{game_name}.png'))
     plt.close()
 
 def main():
@@ -246,7 +246,7 @@ def main():
         gc.collect()
         torch.cuda.empty_cache()
 
-        if episode % 20 == 0:
+        if episode % 50 == 0:
             plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp, RUN_FOLDER)
             print(f"Total: {memory_info.total / (1024 ** 3):.2f} GB")
             print(f"Available: {memory_info.available / (1024 ** 3):.2f} GB")
