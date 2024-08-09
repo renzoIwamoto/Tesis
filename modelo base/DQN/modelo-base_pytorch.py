@@ -16,8 +16,8 @@ import matplotlib.pyplot as plt
 from gymnasium.wrappers import RecordVideo
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'BreakoutNoFrameskip-v4'  # Cambiado a entorno determinista
-#ENV_NAME = 'BreakoutDeterministic-v4'  # Cambiado a entorno determinista
+#ENV_NAME = 'BreakoutNoFrameskip-v4'  # Cambiado a entorno determinista
+ENV_NAME = 'BreakoutDeterministic-v4'  # Cambiado a entorno determinista
 GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4
 GAMMA = 0.99
@@ -26,13 +26,13 @@ MEMORY_SIZE = 200000
 BATCH_SIZE = 128
 TRAINING_START = 50000
 INITIAL_EPSILON = 1
-FINAL_EPSILON = 0.01
+FINAL_EPSILON = 0.05
 EXPLORATION_STEPS = 750000
-UPDATE_TARGET_FREQUENCY = 1000
+UPDATE_TARGET_FREQUENCY = 500
 SAVE_FREQUENCY = 100000
 EVALUATION_FREQUENCY = 100000
 NUM_EVALUATION_EPISODES = 10
-EPISODES = 20000
+EPISODES = 15000
 TRAIN_FREQUENCY = 16
 MAX_STEPS_EPISODE = 50000
 

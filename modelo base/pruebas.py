@@ -1,14 +1,40 @@
-import os
+import gymnasium as gym
+import matplotlib.pyplot as plt
 
-# Definir el directorio base
-BASE_FOLDER = '/data/riwamoto'
-# Definir el nombre del archivo de prueba
-test_file_path = os.path.join(BASE_FOLDER, 'test_file.txt')
+# Crear los entornos
+env_no_skip = gym.make('BreakoutNoFrameskip-v4', render_mode="rgb_array")
+env_skip = gym.make('BreakoutDeterministic-v4', render_mode="rgb_array")
 
-# Crear el archivo de prueba y escribir algo en él
-try:
-    with open(test_file_path, 'w') as file:
-        file.write("Este es un archivo de prueba.")
-    print(f"Archivo de prueba creado exitosamente en {test_file_path}")
-except Exception as e:
-    print(f"No se pudo crear el archivo de prueba: {e}")
+def check_frame_skip(env, num_steps=4):
+    state, _ = env.reset()
+    plt.figure(figsize=(10, 5))
+    
+    for i in range(num_steps):
+        # Seleccionar acción aleatoria
+        action = env.action_space.sample()
+        
+        # Ejecutar la acción en el entorno
+        next_state, reward, done, truncated, info = env.step(action)
+        
+        # Imprimir el shape del estado
+        print(f"Step {i+1}, State shape: {next_state.shape}")
+        
+        # Mostrar la imagen del estado
+        plt.subplot(1, num_steps, i + 1)
+        plt.imshow(next_state)
+        plt.title(f'Step {i+1}')
+        plt.axis('off')
+        
+        if done:
+            break
+    
+    plt.show()
+
+print("BreakoutNoFrameskip-v4 (Sin Frame Skip)")
+check_frame_skip(env_no_skip, num_steps=4)
+
+print("BreakoutDeterministic-v4 (Con Frame Skip)")
+check_frame_skip(env_skip, num_steps=4)
+
+env_no_skip.close()
+env_skip.close()
