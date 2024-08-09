@@ -13,10 +13,10 @@ import psutil
 import gc
 import cv2
 import matplotlib.pyplot as plt
+import logging
 from gymnasium.wrappers import RecordVideo
 
 # Configuración del entorno y parámetros
-#ENV_NAME = 'BreakoutNoFrameskip-v4'  # Cambiado a entorno determinista
 ENV_NAME = 'BreakoutDeterministic-v4'  # Cambiado a entorno determinista
 GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4
@@ -43,6 +43,19 @@ def get_timestamp():
 BASE_FOLDER = '/data/riwamoto'
 GAME_FOLDER = os.path.join(BASE_FOLDER, f'{GAME_NAME}_results')
 os.makedirs(GAME_FOLDER, exist_ok=True)
+
+# Configuración del logging
+timestamp = get_timestamp()
+log_filename = f"{GAME_NAME}_training_{timestamp}.log"
+log_filepath = os.path.join(GAME_FOLDER, log_filename)
+
+# Configurar logging para consola y archivo
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s',
+                    handlers=[
+                        logging.FileHandler(log_filepath),
+                        logging.StreamHandler()
+                    ])
 
 class DQNAgent:
     def __init__(self, state_shape, action_size):
@@ -94,7 +107,7 @@ class DQNAgent:
     def replay(self):
         if len(self.memory) < BATCH_SIZE:
             return
-        
+
         minibatch = random.sample(self.memory, BATCH_SIZE)
         states, actions, rewards, next_states, dones = zip(*minibatch)
 
@@ -234,7 +247,7 @@ def main():
 
             if total_steps % EVALUATION_FREQUENCY == 0:
                 eval_score = evaluate_agent(env, agent, NUM_EVALUATION_EPISODES)
-                print(f"Step: {total_steps}, Evaluation Score: {eval_score}")
+                logging.info(f"Step: {total_steps}, Evaluation Score: {eval_score}")
 
             if done:
                 break
@@ -243,17 +256,12 @@ def main():
         avg_q_values_per_episode.append(avg_q_value)
         scores.append(episode_reward)
         memory_info = psutil.virtual_memory()
-        print(f"Episode: {episode}, Score: {episode_reward}, Epsilon: {agent.epsilon:.2f}, Steps: {episode_steps}, Avg Q-value: {avg_q_value:.2f}, Exp replay: {len(agent.memory)}, Memory Usage: {memory_info.percent}%")
+        logging.info(f"Episode: {episode}, Score: {episode_reward}, Epsilon: {agent.epsilon:.2f}, Steps: {episode_steps}, Avg Q-value: {avg_q_value:.2f}, Exp replay: {len(agent.memory)}, Memory Usage: {memory_info.percent}%")
         gc.collect()
         torch.cuda.empty_cache()
 
         if episode % 50 == 0:
             plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp, RUN_FOLDER)
-            print(f"Total: {memory_info.total / (1024 ** 3):.2f} GB")
-            print(f"Available: {memory_info.available / (1024 ** 3):.2f} GB")
-            print(f"Used: {memory_info.used / (1024 ** 3):.2f} GB")
-            print(f"Free: {memory_info.free / (1024 ** 3):.2f} GB")
-            print(f"Percentage: {memory_info.percent}%")
 
     agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}'))
     with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}_final_{timestamp}.pkl'), 'wb') as f:
