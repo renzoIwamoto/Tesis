@@ -16,7 +16,8 @@ import matplotlib.pyplot as plt
 from gymnasium.wrappers import RecordVideo
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'BreakoutDeterministic-v4'  # Cambiado a entorno determinista
+ENV_NAME = 'BreakoutNoFrameskip-v4'  # Cambiado a entorno determinista
+#ENV_NAME = 'BreakoutDeterministic-v4'  # Cambiado a entorno determinista
 GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4
 GAMMA = 0.99
