@@ -17,10 +17,8 @@ import logging
 from gymnasium.wrappers import RecordVideo
 import json
 
-# Configuración del entorno y parámetros IceHockey
-ENV_NAME = 'BreakoutDeterministic-v4'
-#ENV_NAME = 'IceHockeyDeterministic-v4'
-#ENV_NAME = 'PongDeterministic-v4'
+# Configuración del entorno y parámetros
+ENV_NAME = 'AlienDeterministic-v4'
 GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4
 GAMMA = 0.99
@@ -35,7 +33,8 @@ UPDATE_TARGET_FREQUENCY = 5000
 SAVE_FREQUENCY = 1000000
 EVALUATION_FREQUENCY = 500000
 NUM_EVALUATION_EPISODES = 5
-EPISODES = 20000
+EPISODES = 20000  # Límite de episodios
+TOTAL_STEPS_LIMIT = 10000000  # Límite de pasos totales
 TRAIN_FREQUENCY = 16
 MAX_STEPS_EPISODE = 50000
 NEGATIVE_REWARD = 0  # Nuevo parámetro para el reward negativo
@@ -245,6 +244,7 @@ def save_hyperparameters(timestamp):
         'EVALUATION_FREQUENCY': EVALUATION_FREQUENCY,
         'NUM_EVALUATION_EPISODES': NUM_EVALUATION_EPISODES,
         'EPISODES': EPISODES,
+        'TOTAL_STEPS_LIMIT': TOTAL_STEPS_LIMIT,  # Guardar el nuevo parámetro en los hiperparámetros
         'TRAIN_FREQUENCY': TRAIN_FREQUENCY,
         'MAX_STEPS_EPISODE': MAX_STEPS_EPISODE,
         'NEGATIVE_REWARD': NEGATIVE_REWARD  # Guardar el nuevo parámetro en los hiperparámetros
@@ -278,6 +278,9 @@ def main():
     losses = []
 
     for episode in range(EPISODES):
+        if total_steps >= TOTAL_STEPS_LIMIT:
+            break
+        
         state, _ = env.reset()
         state, stacked_frames = stack_frames(stacked_frames, state, True)
         episode_reward = 0
@@ -298,6 +301,10 @@ def main():
             episode_reward += reward
             total_steps += 1
             episode_steps += 1
+
+            # Imprimir el total de steps cada 100,000 steps
+            if total_steps % 100000 == 0:
+                logging.info(f"Total steps: {total_steps}")
 
             if total_steps >= TRAINING_START and total_steps % TRAIN_FREQUENCY == 0:
                 agent.replay()
