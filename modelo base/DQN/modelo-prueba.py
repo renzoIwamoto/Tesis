@@ -284,7 +284,7 @@ def main():
 
     save_hyperparameters(timestamp)
 
-    env = gym.make(ENV_NAME, render_mode="human")
+    env = gym.make(ENV_NAME, render_mode="rgb_array")
     state_shape = (FRAME_STACK, 84, 84)
     action_size = env.action_space.n
 
