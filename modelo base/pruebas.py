@@ -3,6 +3,51 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 
+
+# Lista de combinaciones de dificultad y modo a comparar
+combinations = [
+    {'difficulty': 0, 'mode': 0},
+    {'difficulty': 1, 'mode': 0},
+    {'difficulty': 0, 'mode': 4},
+    {'difficulty': 1, 'mode': 4},
+    {'difficulty': 0, 'mode': 8},
+    {'difficulty': 1, 'mode': 8},
+]
+
+def run_env(env_name, difficulty, mode, num_episodes=1):
+    env = gym.make(env_name, difficulty=difficulty, mode=mode, render_mode="rgb_array")
+    for episode in range(num_episodes):
+        state, _ = env.reset()
+        done = False
+        total_reward = 0
+        frames = []
+        
+        while not done:
+            action = env.action_space.sample()  # Acción aleatoria
+            next_state, reward, terminated, truncated, _ = env.step(action)
+            frames.append(next_state)
+            total_reward += reward
+            done = terminated or truncated
+            
+        # Mostrar la recompensa total por episodio
+        print(f"Env: {env_name}, Difficulty: {difficulty}, Mode: {mode}, Episode: {episode+1}, Total Reward: {total_reward}")
+        env.close()
+        
+        # Mostrar algunas imágenes del juego
+        plt.figure(figsize=(10, 5))
+        for i, frame in enumerate(frames[:4]):  # Mostrar los primeros 4 frames
+            plt.subplot(1, 4, i+1)
+            plt.imshow(frame)
+            plt.title(f"Frame {i+1}")
+            plt.axis('off')
+        plt.suptitle(f"{env_name} - Difficulty {difficulty} - Mode {mode}")
+        plt.show()
+
+# Ejemplo de uso
+env_name = 'ALE/Breakout-v5'
+for combo in combinations:
+    run_env(env_name, difficulty=combo['difficulty'], mode=combo['mode'], num_episodes=1)
+
 def preprocess_frame(frame):
     # Mostrar el frame original
     plt.figure(figsize=(10, 5))

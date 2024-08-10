@@ -15,15 +15,16 @@ import cv2
 import matplotlib.pyplot as plt
 import logging
 from gymnasium.wrappers import RecordVideo
+import json
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'BreakoutDeterministic-v4'  # Cambiado a entorno determinista
+ENV_NAME = 'BreakoutDeterministic-v4'
 GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4
 GAMMA = 0.99
-LEARNING_RATE = 0.00025
+LEARNING_RATE = 0.00005
 MEMORY_SIZE = 200000
-BATCH_SIZE = 512
+BATCH_SIZE = 128
 TRAINING_START = 50000
 INITIAL_EPSILON = 1
 FINAL_EPSILON = 0.05
@@ -32,22 +33,28 @@ UPDATE_TARGET_FREQUENCY = 5000
 SAVE_FREQUENCY = 100000
 EVALUATION_FREQUENCY = 100000
 NUM_EVALUATION_EPISODES = 5
-EPISODES = 20000
-TRAIN_FREQUENCY = 16
+EPISODES = 10000
+TRAIN_FREQUENCY = 500
 MAX_STEPS_EPISODE = 50000
 
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-# Crear la carpeta principal del juego
+# Crear la carpeta principal del juego para modelos y replays
 BASE_FOLDER = '/data/riwamoto'
 GAME_FOLDER = os.path.join(BASE_FOLDER, f'{GAME_NAME}_results')
 os.makedirs(GAME_FOLDER, exist_ok=True)
 
+# Carpeta local para logs, gráficos, videos e hiperparámetros dentro de DQN
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # Directorio del script actual (DQN)
+RESULTADOS_FOLDER = os.path.join(SCRIPT_DIR, 'resultados')
+LOCAL_FOLDER = os.path.join(RESULTADOS_FOLDER, f'local_results_{GAME_NAME}_{get_timestamp}')
+os.makedirs(LOCAL_FOLDER, exist_ok=True)
+
 # Configuración del logging
 timestamp = get_timestamp()
 log_filename = f"{GAME_NAME}_training_{timestamp}.log"
-log_filepath = os.path.join(GAME_FOLDER, log_filename)
+log_filepath = os.path.join(LOCAL_FOLDER, log_filename)
 
 # Configurar logging para consola y archivo
 logging.basicConfig(level=logging.INFO,
@@ -147,7 +154,7 @@ def stack_frames(stacked_frames, frame, is_new_episode):
         stacked_frames = deque([frame] * FRAME_STACK, maxlen=FRAME_STACK)
     else:
         stacked_frames.append(frame)
-    stacked = np.stack(stacked_frames, axis=0)  # Stack frames along the first dimension
+    stacked = np.stack(stacked_frames, axis=0)
     return stacked, stacked_frames
 
 def evaluate_agent(env, agent, num_episodes):
@@ -168,7 +175,7 @@ def evaluate_agent(env, agent, num_episodes):
         total_rewards.append(episode_reward)
     return np.mean(total_rewards)
 
-def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp, run_folder):
+def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp):
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 15))
 
     ax1.plot(scores)
@@ -187,20 +194,44 @@ def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp, r
     ax3.set_ylabel('Loss')
 
     plt.tight_layout()
-    plt.savefig(os.path.join(run_folder, f'training_progress_{game_name}.png'))
+    plt.savefig(os.path.join(LOCAL_FOLDER, f'training_progress_{game_name}_{timestamp}.png'))
     plt.close()
+
+def save_hyperparameters(timestamp):
+    hyperparameters = {
+        'ENV_NAME': ENV_NAME,
+        'FRAME_STACK': FRAME_STACK,
+        'GAMMA': GAMMA,
+        'LEARNING_RATE': LEARNING_RATE,
+        'MEMORY_SIZE': MEMORY_SIZE,
+        'BATCH_SIZE': BATCH_SIZE,
+        'TRAINING_START': TRAINING_START,
+        'INITIAL_EPSILON': INITIAL_EPSILON,
+        'FINAL_EPSILON': FINAL_EPSILON,
+        'EXPLORATION_STEPS': EXPLORATION_STEPS,
+        'UPDATE_TARGET_FREQUENCY': UPDATE_TARGET_FREQUENCY,
+        'SAVE_FREQUENCY': SAVE_FREQUENCY,
+        'EVALUATION_FREQUENCY': EVALUATION_FREQUENCY,
+        'NUM_EVALUATION_EPISODES': NUM_EVALUATION_EPISODES,
+        'EPISODES': EPISODES,
+        'TRAIN_FREQUENCY': TRAIN_FREQUENCY,
+        'MAX_STEPS_EPISODE': MAX_STEPS_EPISODE
+    }
+    
+    with open(os.path.join(LOCAL_FOLDER, f'hyperparameters_{timestamp}.json'), 'w') as f:
+        json.dump(hyperparameters, f, indent=4)
 
 def main():
     timestamp = get_timestamp()
-    RUN_FOLDER = os.path.join(GAME_FOLDER, f'run_{timestamp}')
-    os.makedirs(RUN_FOLDER, exist_ok=True)
-
-    MODELS_FOLDER = os.path.join(RUN_FOLDER, 'models')
-    REPLAYS_FOLDER = os.path.join(RUN_FOLDER, 'replays')
-    VIDEOS_FOLDER = os.path.join(RUN_FOLDER, 'videos')
+    
+    MODELS_FOLDER = os.path.join(GAME_FOLDER, 'models')
+    REPLAYS_FOLDER = os.path.join(GAME_FOLDER, 'replays')
+    VIDEOS_FOLDER = os.path.join(LOCAL_FOLDER, 'videos')
     os.makedirs(MODELS_FOLDER, exist_ok=True)
     os.makedirs(REPLAYS_FOLDER, exist_ok=True)
     os.makedirs(VIDEOS_FOLDER, exist_ok=True)
+
+    save_hyperparameters(timestamp)
 
     env = gym.make(ENV_NAME, render_mode="rgb_array")
     state_shape = (FRAME_STACK, 84, 84)
@@ -241,8 +272,8 @@ def main():
                 agent.update_target_model()
 
             if total_steps % SAVE_FREQUENCY == 0:
-                agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}'))
-                with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}.pkl'), 'wb') as f:
+                agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_{total_steps}.pth'))
+                with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}_{total_steps}.pkl'), 'wb') as f:
                     pickle.dump(agent.memory, f)
 
             if total_steps % EVALUATION_FREQUENCY == 0:
@@ -261,9 +292,9 @@ def main():
         torch.cuda.empty_cache()
 
         if episode % 50 == 0:
-            plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp, RUN_FOLDER)
+            plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp)
 
-    agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}'))
+    agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}.pth'))
     with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}_final_{timestamp}.pkl'), 'wb') as f:
         pickle.dump(agent.memory, f)
 
