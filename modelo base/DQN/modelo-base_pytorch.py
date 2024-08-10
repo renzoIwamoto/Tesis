@@ -48,7 +48,7 @@ os.makedirs(GAME_FOLDER, exist_ok=True)
 # Carpeta local para logs, gráficos, videos e hiperparámetros dentro de DQN
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # Directorio del script actual (DQN)
 RESULTADOS_FOLDER = os.path.join(SCRIPT_DIR, 'resultados')
-LOCAL_FOLDER = os.path.join(RESULTADOS_FOLDER, f'local_results_{GAME_NAME}_{get_timestamp}')
+LOCAL_FOLDER = os.path.join(RESULTADOS_FOLDER, f'local_results_{GAME_NAME}_{get_timestamp()}')
 os.makedirs(LOCAL_FOLDER, exist_ok=True)
 
 # Configuración del logging
@@ -175,23 +175,38 @@ def evaluate_agent(env, agent, num_episodes):
         total_rewards.append(episode_reward)
     return np.mean(total_rewards)
 
-def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp):
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 15))
+def smooth_data(data, window_size=100):
+    """Aplica un suavizado por promedio móvil a los datos."""
+    return np.convolve(data, np.ones(window_size)/window_size, mode='valid')
 
-    ax1.plot(scores)
+def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp):
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 18))
+
+    # Suavizar datos para mejorar la visualización
+    smoothed_scores = smooth_data(scores)
+    smoothed_avg_q_values = smooth_data(avg_q_values)
+    smoothed_losses = smooth_data(losses)
+
+    # Gráfico de puntuaciones
+    ax1.plot(range(len(smoothed_scores)), smoothed_scores, label='Smoothed Scores', color='blue', alpha=0.8)
     ax1.set_title(f'{game_name} - Episode Scores')
     ax1.set_xlabel('Episode')
     ax1.set_ylabel('Score')
+    ax1.legend()
 
-    ax2.plot(avg_q_values)
+    # Gráfico de valores Q promedio
+    ax2.plot(range(len(smoothed_avg_q_values)), smoothed_avg_q_values, label='Smoothed Avg Q-values', color='green', alpha=0.8)
     ax2.set_title(f'{game_name} - Average Q-values per Episode')
     ax2.set_xlabel('Episode')
     ax2.set_ylabel('Avg Q-value')
+    ax2.legend()
 
-    ax3.plot(losses)
+    # Gráfico de pérdidas
+    ax3.plot(range(len(smoothed_losses)), smoothed_losses, label='Smoothed Losses', color='red', alpha=0.8)
     ax3.set_title(f'{game_name} - Loss')
     ax3.set_xlabel('Training Step')
     ax3.set_ylabel('Loss')
+    ax3.legend()
 
     plt.tight_layout()
     plt.savefig(os.path.join(LOCAL_FOLDER, f'training_progress_{game_name}_{timestamp}.png'))
@@ -291,7 +306,7 @@ def main():
         gc.collect()
         torch.cuda.empty_cache()
 
-        if episode % 50 == 0:
+        if episode % 200 == 0:
             plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp)
 
     agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}.pth'))
