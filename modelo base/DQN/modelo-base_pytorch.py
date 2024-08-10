@@ -17,8 +17,9 @@ import logging
 from gymnasium.wrappers import RecordVideo
 import json
 
-# Configuración del entorno y parámetros
-ENV_NAME = 'BreakoutDeterministic-v4'
+# Configuración del entorno y parámetros IceHockey
+#ENV_NAME = 'BreakoutDeterministic-v4'
+ENV_NAME = 'IceHockeyDeterministic-v4'
 GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4
 GAMMA = 0.99
@@ -28,7 +29,7 @@ BATCH_SIZE = 256
 TRAINING_START = 50000
 INITIAL_EPSILON = 1
 FINAL_EPSILON = 0.05
-EXPLORATION_STEPS = 1000000
+EXPLORATION_STEPS = 500000
 UPDATE_TARGET_FREQUENCY = 5000
 SAVE_FREQUENCY = 1000000
 EVALUATION_FREQUENCY = 500000
