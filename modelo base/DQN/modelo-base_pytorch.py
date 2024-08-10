@@ -18,8 +18,8 @@ from gymnasium.wrappers import RecordVideo
 import json
 
 # Configuración del entorno y parámetros IceHockey
-#ENV_NAME = 'BreakoutDeterministic-v4'
-ENV_NAME = 'IceHockeyDeterministic-v4'
+ENV_NAME = 'BreakoutDeterministic-v4'
+#ENV_NAME = 'IceHockeyDeterministic-v4'
 GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4
 GAMMA = 0.99
@@ -29,15 +29,15 @@ BATCH_SIZE = 256
 TRAINING_START = 50000
 INITIAL_EPSILON = 1
 FINAL_EPSILON = 0.05
-EXPLORATION_STEPS = 500000
+EXPLORATION_STEPS = 250000
 UPDATE_TARGET_FREQUENCY = 5000
 SAVE_FREQUENCY = 1000000
 EVALUATION_FREQUENCY = 500000
 NUM_EVALUATION_EPISODES = 5
 EPISODES = 20000
-TRAIN_FREQUENCY = 16
+TRAIN_FREQUENCY = 64
 MAX_STEPS_EPISODE = 50000
-NEGATIVE_REWARD = -10  # Nuevo parámetro para el reward negativo
+NEGATIVE_REWARD = 0  # Nuevo parámetro para el reward negativo
 
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -264,7 +264,7 @@ def main():
 
     save_hyperparameters(timestamp)
 
-    env = gym.make(ENV_NAME, render_mode="rgb_array")
+    env = gym.make(ENV_NAME, render_mode="human")
     state_shape = (FRAME_STACK, 84, 84)
     action_size = env.action_space.n
 
