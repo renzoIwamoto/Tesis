@@ -177,15 +177,28 @@ def evaluate_agent(env, agent, num_episodes):
 
 def smooth_data(data, window_size=100):
     """Aplica un suavizado por promedio móvil a los datos."""
+    if len(data) < window_size:
+        return data  # Devuelve los datos sin suavizar si son insuficientes
     return np.convolve(data, np.ones(window_size)/window_size, mode='valid')
 
 def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp):
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 18))
 
-    # Suavizar datos para mejorar la visualización
-    smoothed_scores = smooth_data(scores)
-    smoothed_avg_q_values = smooth_data(avg_q_values)
-    smoothed_losses = smooth_data(losses)
+    # Suavizar datos para mejorar la visualización, sólo si es posible
+    if len(scores) >= 100:
+        smoothed_scores = smooth_data(scores)
+    else:
+        smoothed_scores = scores
+
+    if len(avg_q_values) >= 100:
+        smoothed_avg_q_values = smooth_data(avg_q_values)
+    else:
+        smoothed_avg_q_values = avg_q_values
+
+    if len(losses) >= 100:
+        smoothed_losses = smooth_data(losses)
+    else:
+        smoothed_losses = losses
 
     # Gráfico de puntuaciones
     ax1.plot(range(len(smoothed_scores)), smoothed_scores, label='Smoothed Scores', color='blue', alpha=0.8)
