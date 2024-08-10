@@ -18,9 +18,9 @@ from gymnasium.wrappers import RecordVideo
 import json
 
 # Configuración del entorno y parámetros IceHockey
-#ENV_NAME = 'BreakoutDeterministic-v4'
+ENV_NAME = 'BreakoutDeterministic-v4'
 #ENV_NAME = 'IceHockeyDeterministic-v4'
-ENV_NAME = 'PongDeterministic-v4'
+#ENV_NAME = 'PongDeterministic-v4'
 GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4
 GAMMA = 0.99
