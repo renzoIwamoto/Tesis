@@ -23,19 +23,20 @@ GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4
 GAMMA = 0.99
 LEARNING_RATE = 0.0001
-MEMORY_SIZE = 100000
-BATCH_SIZE = 64
+MEMORY_SIZE = 200000
+BATCH_SIZE = 256
 TRAINING_START = 50000
-INITIAL_EPSILON = 0.5
+INITIAL_EPSILON = 1
 FINAL_EPSILON = 0.05
 EXPLORATION_STEPS = 1000000
-UPDATE_TARGET_FREQUENCY = 1000
+UPDATE_TARGET_FREQUENCY = 5000
 SAVE_FREQUENCY = 500000
 EVALUATION_FREQUENCY = 500000
 NUM_EVALUATION_EPISODES = 5
-EPISODES = 10000
+EPISODES = 20000
 TRAIN_FREQUENCY = 16
 MAX_STEPS_EPISODE = 50000
+NEGATIVE_REWARD = -10  # Nuevo parámetro para el reward negativo
 
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -243,7 +244,8 @@ def save_hyperparameters(timestamp):
         'NUM_EVALUATION_EPISODES': NUM_EVALUATION_EPISODES,
         'EPISODES': EPISODES,
         'TRAIN_FREQUENCY': TRAIN_FREQUENCY,
-        'MAX_STEPS_EPISODE': MAX_STEPS_EPISODE
+        'MAX_STEPS_EPISODE': MAX_STEPS_EPISODE,
+        'NEGATIVE_REWARD': NEGATIVE_REWARD  # Guardar el nuevo parámetro en los hiperparámetros
     }
     
     with open(os.path.join(LOCAL_FOLDER, f'hyperparameters_{timestamp}.json'), 'w') as f:
@@ -284,6 +286,10 @@ def main():
             action = agent.select_action(state, env)
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
+            
+            if done:
+                reward += NEGATIVE_REWARD  # Añadir el reward negativo cuando se llega a done
+
             next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
             agent.remember(state, action, reward, next_state, done)
             state = next_state
