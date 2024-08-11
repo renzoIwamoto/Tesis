@@ -139,7 +139,10 @@ class DQNAgent:
         self.epsilon = max(FINAL_EPSILON, INITIAL_EPSILON - (step * (INITIAL_EPSILON - FINAL_EPSILON) / EXPLORATION_STEPS))
 
     def save(self, filename):
-        torch.save(self.q_network.state_dict(), filename)
+        try:
+            torch.save(self.q_network.state_dict(), filename)
+        except Exception as e:
+            logging.error(f"Error al guardar el modelo: {e}")
 
     def load(self, filename):
         self.q_network.load_state_dict(torch.load(filename))
@@ -315,8 +318,8 @@ def main():
                 agent.update_target_model()
 
             if total_steps % SAVE_FREQUENCY == 0:
-                agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_{total_steps}.pth'))
-                with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}_{total_steps}.pkl'), 'wb') as f:
+                agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}.pth'))
+                with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}.pkl'), 'wb') as f:
                     pickle.dump(agent.memory, f)
 
             if total_steps % EVALUATION_FREQUENCY == 0:
@@ -337,9 +340,12 @@ def main():
         if episode % 200 == 0:
             plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp)
 
-    agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}.pth'))
-    with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}_final_{timestamp}.pkl'), 'wb') as f:
-        pickle.dump(agent.memory, f)
+    try:
+        agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}.pth'))
+        with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}_final_{timestamp}.pkl'), 'wb') as f:
+            pickle.dump(agent.memory, f)
+    except Exception as e:
+        logging.error(f"Error al guardar el modelo o la memoria de experiencia: {e}")
 
     env = gym.make(ENV_NAME, render_mode="rgb_array")
     env = RecordVideo(env, os.path.join(VIDEOS_FOLDER, f'video_{timestamp}'))
