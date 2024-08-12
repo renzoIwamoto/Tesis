@@ -1,5 +1,5 @@
 {
-    "ENV_NAME": "BreakoutDeterministic-v4",
+    "ENV_NAME": "AlienDeterministic-v4",
     "FRAME_STACK": 4,
     "GAMMA": 0.99,
     "LEARNING_RATE": 0.0001,
@@ -14,6 +14,7 @@
     "EVALUATION_FREQUENCY": 500000,
     "NUM_EVALUATION_EPISODES": 5,
     "EPISODES": 20000,
+    "TOTAL_STEPS_LIMIT": 10000000,
     "TRAIN_FREQUENCY": 16,
     "MAX_STEPS_EPISODE": 50000,
     "NEGATIVE_REWARD": 0
