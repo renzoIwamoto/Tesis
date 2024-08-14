@@ -17,6 +17,15 @@ import logging
 from gymnasium.wrappers import RecordVideo
 import json
 
+### promediar entre 10 y 20 últimos episodios (agregar el valor máximo y mínimo) (desviación estándar con barras)
+### se ocupa 6GB
+### investigar como asignar gpu que va a utilizar.
+### dejar solo con límite de steps y no de episodios
+### frecuancia de replay dinámico.
+### en la evaluación no es necesario acciones aleatorias (sacar todo de la política)
+### hacer pruebas con 5 juegos y guardar el video con el mejor.
+### hacer prueba con normalización de reward. (en caso hayan varios valores que el mayor valor sea 1 y el menor -1)
+
 # Configuración del entorno y parámetros
 ENV_NAME = 'IceHockeyDeterministic-v4'
 GAME_NAME = ENV_NAME.split('-')[0]
@@ -29,13 +38,13 @@ TRAINING_START = 100000
 INITIAL_EPSILON = 1
 FINAL_EPSILON = 0.05
 EXPLORATION_STEPS = 250000
-UPDATE_TARGET_FREQUENCY = 5000
+UPDATE_TARGET_FREQUENCY = 1000
 SAVE_FREQUENCY = 1000000
 EVALUATION_FREQUENCY = 500000
 NUM_EVALUATION_EPISODES = 5
-EPISODES = 20000  # Límite de episodios
+EPISODES = 100000  # Límite de episodios
 TOTAL_STEPS_LIMIT = 10000000  # Límite de pasos totales
-TRAIN_FREQUENCY = 16
+TRAIN_FREQUENCY = 16  ### probar 8 y 32 
 MAX_STEPS_EPISODE = 50000
 NEGATIVE_REWARD = 0  # Nuevo parámetro para el reward negativo
 
@@ -325,6 +334,7 @@ def main():
             if total_steps % EVALUATION_FREQUENCY == 0:
                 eval_score = evaluate_agent(env, agent, NUM_EVALUATION_EPISODES)
                 logging.info(f"Step: {total_steps}, Evaluation Score: {eval_score}")
+                torch.cuda.empty_cache()  # Limpiar la caché de la GPU
 
             if done:
                 break
@@ -334,11 +344,11 @@ def main():
         scores.append(episode_reward)
         memory_info = psutil.virtual_memory()
         logging.info(f"Ep.: {episode}, Score: {episode_reward}, e: {agent.epsilon:.2f}, Steps: {episode_steps}, Avg Q-val: {avg_q_value:.2f}, replay: {len(agent.memory)}, Mem Usage: {memory_info.percent}%")
-        gc.collect()
         torch.cuda.empty_cache()
 
         if episode % 200 == 0:
             plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp)
+            gc.collect()
 
     try:
         agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}.pth'))
