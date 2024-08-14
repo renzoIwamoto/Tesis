@@ -2,7 +2,39 @@ import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
+# Lista de juegos a probar
+games = [
+    
+    'SpaceInvadersDeterministic-v4',
+    'BoxingDeterministic-v4',
+    'IceHockeyDeterministic-v4',
+    'QbertDeterministic-v4',
+    'BreakoutDeterministic-v4',
+    'PongDeterministic-v4'
+]
 
+# Función para probar ale.lives() en diferentes juegos
+def test_ale_lives(games):
+    for game in games:
+        try:
+            env = gym.make(game)
+            env.reset()
+            lives = env.ale.lives()
+            print(f"Game: {game}, Initial lives: {lives}")
+            done = False
+            while not done:
+                action = env.action_space.sample()
+                _, _, done, _, _ = env.step(action)
+                current_lives = env.ale.lives()
+                print(f"Game: {game}, Current lives: {current_lives}")
+            env.close()
+        except AttributeError as e:
+            print(f"Game: {game} does not support ale.lives(). Error: {e}")
+        except Exception as e:
+            print(f"An error occurred with game: {game}. Error: {e}")
+
+# Ejecutar la función
+test_ale_lives(games)
 
 # Lista de combinaciones de dificultad y modo a comparar
 combinations = [

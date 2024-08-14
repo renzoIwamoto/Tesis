@@ -222,15 +222,18 @@ def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp):
     smoothed_avg_q_values = np.convolve(avg_q_values, np.ones(window_size)/window_size, mode='valid')
     smoothed_losses = smooth_data(losses)  # Mantenemos el suavizado original para las pérdidas
 
-    # Calcular desviación estándar
-    std_scores = np.std(scores[-window_size:])
-    std_q_values = np.std(avg_q_values[-window_size:])
+    # Calcular valores mínimos y máximos para el área sombreada
+    min_scores = np.array([min(scores[i:i+window_size]) for i in range(len(smoothed_scores))])
+    max_scores = np.array([max(scores[i:i+window_size]) for i in range(len(smoothed_scores))])
+    
+    min_q_values = np.array([min(avg_q_values[i:i+window_size]) for i in range(len(smoothed_avg_q_values))])
+    max_q_values = np.array([max(avg_q_values[i:i+window_size]) for i in range(len(smoothed_avg_q_values))])
 
     # Gráfico de puntuaciones
     ax1.plot(range(len(smoothed_scores)), smoothed_scores, label='Average Score', color='blue')
     ax1.fill_between(range(len(smoothed_scores)), 
-                     smoothed_scores - std_scores, 
-                     smoothed_scores + std_scores, 
+                     min_scores, 
+                     max_scores, 
                      alpha=0.3, color='blue')
     ax1.plot(range(len(scores)), scores, label='Episode Scores', color='gray', alpha=0.5)
     ax1.set_title(f'{game_name} - Episode Scores')
@@ -245,8 +248,8 @@ def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp):
     # Gráfico de valores Q promedio
     ax2.plot(range(len(smoothed_avg_q_values)), smoothed_avg_q_values, label='Average Q-value', color='green')
     ax2.fill_between(range(len(smoothed_avg_q_values)), 
-                     smoothed_avg_q_values - std_q_values, 
-                     smoothed_avg_q_values + std_q_values, 
+                     min_q_values, 
+                     max_q_values, 
                      alpha=0.3, color='green')
     ax2.plot(range(len(avg_q_values)), avg_q_values, label='Episode Q-values', color='gray', alpha=0.5)
     ax2.set_title(f'{game_name} - Average Q-values per Episode')
