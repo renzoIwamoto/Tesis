@@ -27,7 +27,7 @@ import json
 ### hacer prueba con normalización de reward. (en caso hayan varios valores que el mayor valor sea 1 y el menor -1)
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'IceHockeyDeterministic-v4'
+ENV_NAME = 'BreakoutDeterministic-v4'
 GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4
 GAMMA = 0.99
@@ -47,6 +47,8 @@ TOTAL_STEPS_LIMIT = 10000000  # Límite de pasos totales
 TRAIN_FREQUENCY = 16  ### probar 8 y 32 
 MAX_STEPS_EPISODE = 50000
 NEGATIVE_REWARD = 0  # Nuevo parámetro para el reward negativo
+MIN_REWARD = float('inf')
+MAX_REWARD = float('-inf')
 
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -111,7 +113,17 @@ class DQNAgent:
         self.target_q_network.load_state_dict(self.q_network.state_dict())
 
     def remember(self, state, action, reward, next_state, done):
-        self.memory.append((state, action, reward, next_state, done))
+        global MIN_REWARD, MAX_REWARD
+        MIN_REWARD = min(MIN_REWARD, reward)
+        MAX_REWARD = max(MAX_REWARD, reward)
+        
+        # Normalizar el reward
+        if MAX_REWARD > MIN_REWARD:
+            normalized_reward = (reward - MIN_REWARD) / (MAX_REWARD - MIN_REWARD)
+        else:
+            normalized_reward = reward
+        
+        self.memory.append((state, action, normalized_reward, next_state, done))
 
     def select_action(self, state, env):
         if np.random.rand() <= self.epsilon:
@@ -173,6 +185,9 @@ def stack_frames(stacked_frames, frame, is_new_episode):
 
 def evaluate_agent(env, agent, num_episodes):
     total_rewards = []
+    original_epsilon = agent.epsilon
+    agent.epsilon = 0  # Establecer epsilon a 0 para la evaluación
+    
     for _ in range(num_episodes):
         state, _ = env.reset()
         stacked_frames = deque(maxlen=FRAME_STACK)
@@ -187,6 +202,8 @@ def evaluate_agent(env, agent, num_episodes):
             state = next_state
             episode_reward += reward
         total_rewards.append(episode_reward)
+    
+    agent.epsilon = original_epsilon  # Restaurar el valor original de epsilon
     return np.mean(total_rewards)
 
 def smooth_data(data, window_size=100):
@@ -198,38 +215,47 @@ def smooth_data(data, window_size=100):
 def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp):
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 18))
 
-    # Suavizar datos para mejorar la visualización, sólo si es posible
-    if len(scores) >= 100:
-        smoothed_scores = smooth_data(scores)
-    else:
-        smoothed_scores = scores
+    window_size = min(20, len(scores))  # Usamos los últimos 20 episodios o menos si hay menos datos
+    
+    # Calcular promedios móviles
+    smoothed_scores = np.convolve(scores, np.ones(window_size)/window_size, mode='valid')
+    smoothed_avg_q_values = np.convolve(avg_q_values, np.ones(window_size)/window_size, mode='valid')
+    smoothed_losses = smooth_data(losses)  # Mantenemos el suavizado original para las pérdidas
 
-    if len(avg_q_values) >= 100:
-        smoothed_avg_q_values = smooth_data(avg_q_values)
-    else:
-        smoothed_avg_q_values = avg_q_values
-
-    if len(losses) >= 100:
-        smoothed_losses = smooth_data(losses)
-    else:
-        smoothed_losses = losses
+    # Calcular desviación estándar
+    std_scores = np.std(scores[-window_size:])
+    std_q_values = np.std(avg_q_values[-window_size:])
 
     # Gráfico de puntuaciones
-    ax1.plot(range(len(smoothed_scores)), smoothed_scores, label='Smoothed Scores', color='blue', alpha=0.8)
+    ax1.plot(range(len(smoothed_scores)), smoothed_scores, label='Average Score', color='blue')
+    ax1.fill_between(range(len(smoothed_scores)), 
+                     smoothed_scores - std_scores, 
+                     smoothed_scores + std_scores, 
+                     alpha=0.3, color='blue')
+    ax1.plot(range(len(scores)), scores, label='Episode Scores', color='gray', alpha=0.5)
     ax1.set_title(f'{game_name} - Episode Scores')
     ax1.set_xlabel('Episode')
     ax1.set_ylabel('Score')
     ax1.legend()
 
+    # Agregar valores máximo y mínimo al gráfico de puntuaciones
+    ax1.axhline(max(scores), color='red', linestyle='--', label='Max Score')
+    ax1.axhline(min(scores), color='green', linestyle='--', label='Min Score')
+
     # Gráfico de valores Q promedio
-    ax2.plot(range(len(smoothed_avg_q_values)), smoothed_avg_q_values, label='Smoothed Avg Q-values', color='green', alpha=0.8)
+    ax2.plot(range(len(smoothed_avg_q_values)), smoothed_avg_q_values, label='Average Q-value', color='green')
+    ax2.fill_between(range(len(smoothed_avg_q_values)), 
+                     smoothed_avg_q_values - std_q_values, 
+                     smoothed_avg_q_values + std_q_values, 
+                     alpha=0.3, color='green')
+    ax2.plot(range(len(avg_q_values)), avg_q_values, label='Episode Q-values', color='gray', alpha=0.5)
     ax2.set_title(f'{game_name} - Average Q-values per Episode')
     ax2.set_xlabel('Episode')
     ax2.set_ylabel('Avg Q-value')
     ax2.legend()
 
     # Gráfico de pérdidas
-    ax3.plot(range(len(smoothed_losses)), smoothed_losses, label='Smoothed Losses', color='red', alpha=0.8)
+    ax3.plot(range(len(smoothed_losses)), smoothed_losses, label='Smoothed Losses', color='red')
     ax3.set_title(f'{game_name} - Loss')
     ax3.set_xlabel('Training Step')
     ax3.set_ylabel('Loss')
