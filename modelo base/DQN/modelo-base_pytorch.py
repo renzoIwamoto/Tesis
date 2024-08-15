@@ -119,7 +119,7 @@ class DQNAgent:
         
         # Normalizar el reward
         if MAX_REWARD > MIN_REWARD:
-            normalized_reward = (reward - MIN_REWARD) / (MAX_REWARD - MIN_REWARD)
+            normalized_reward = (reward) / (MAX_REWARD)
         else:
             normalized_reward = reward
         
