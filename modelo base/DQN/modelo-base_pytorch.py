@@ -380,6 +380,7 @@ def main():
             gc.collect()
 
     try:
+        plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp)
         agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}.pth'))
         with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}_final_{timestamp}.pkl'), 'wb') as f:
             pickle.dump(agent.memory, f)

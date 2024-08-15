@@ -17,27 +17,38 @@ import logging
 from gymnasium.wrappers import RecordVideo
 import json
 
-# Configuración del entorno y parámetros IceHockey
-#ENV_NAME = 'BreakoutDeterministic-v4'
+### promediar entre 10 y 20 últimos episodios (agregar el valor máximo y mínimo) (desviación estándar con barras)
+### se ocupa 6GB
+### investigar como asignar gpu que va a utilizar.
+### dejar solo con límite de steps y no de episodios
+### frecuancia de replay dinámico.
+### en la evaluación no es necesario acciones aleatorias (sacar todo de la política)
+### hacer pruebas con 5 juegos y guardar el video con el mejor.
+### hacer prueba con normalización de reward. (en caso hayan varios valores que el mayor valor sea 1 y el menor -1)
+
+# Configuración del entorno y parámetros
 ENV_NAME = 'IceHockeyDeterministic-v4'
 GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4
 GAMMA = 0.99
-LEARNING_RATE = 0.0001
+LEARNING_RATE = 0.00025
 MEMORY_SIZE = 100000
 BATCH_SIZE = 256
-TRAINING_START = 50000
+TRAINING_START = 100000
 INITIAL_EPSILON = 1
 FINAL_EPSILON = 0.05
 EXPLORATION_STEPS = 250000
-UPDATE_TARGET_FREQUENCY = 5000
+UPDATE_TARGET_FREQUENCY = 1000
 SAVE_FREQUENCY = 1000000
 EVALUATION_FREQUENCY = 500000
 NUM_EVALUATION_EPISODES = 5
-EPISODES = 20000
-TRAIN_FREQUENCY = 16
+EPISODES = 100000  # Límite de episodios
+TOTAL_STEPS_LIMIT = 10000000  # Límite de pasos totales
+TRAIN_FREQUENCY = 16  ### probar 8 y 32 
 MAX_STEPS_EPISODE = 50000
 NEGATIVE_REWARD = 0  # Nuevo parámetro para el reward negativo
+MIN_REWARD = float('inf')
+MAX_REWARD = float('-inf')
 
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -85,44 +96,34 @@ class DQNAgent:
 
     def build_model(self):
         model = nn.Sequential(
-            # Primera capa convolucional
-            nn.Conv2d(FRAME_STACK, 32, kernel_size=8, stride=4, padding=0),
+            nn.Conv2d(FRAME_STACK * 3, 32, kernel_size=8, stride=4, padding=0),
             nn.ReLU(),
-            
-            # Segunda capa convolucional
             nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
             nn.ReLU(),
-            
-            # Tercera capa convolucional
-            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=0),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=0),
             nn.ReLU(),
-
-            # Cuarta capa convolucional
-            nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0),
-            nn.ReLU(),
-
-            # Aplanado de la salida de la última capa convolucional
             nn.Flatten(),
-            
-            # Primera capa completamente conectada
-            nn.Linear(7 * 7 * 128, 512),
+            nn.Linear(7 * 7 * 64, 512),
             nn.ReLU(),
-            
-            # Segunda capa completamente conectada
-            nn.Linear(512, 512),
-            nn.ReLU(),
-            
-            # Capa de salida
             nn.Linear(512, self.action_size)
         )
         return model
-
 
     def update_target_model(self):
         self.target_q_network.load_state_dict(self.q_network.state_dict())
 
     def remember(self, state, action, reward, next_state, done):
-        self.memory.append((state, action, reward, next_state, done))
+        global MIN_REWARD, MAX_REWARD
+        MIN_REWARD = min(MIN_REWARD, reward)
+        MAX_REWARD = max(MAX_REWARD, reward)
+        
+        # Normalizar el reward
+        if MAX_REWARD > MIN_REWARD and MAX_REWARD != 0:
+            normalized_reward = (reward) / (MAX_REWARD)
+        else:
+            normalized_reward = reward
+        
+        self.memory.append((state, action, normalized_reward, next_state, done))
 
     def select_action(self, state, env):
         if np.random.rand() <= self.epsilon:
@@ -159,15 +160,17 @@ class DQNAgent:
         self.epsilon = max(FINAL_EPSILON, INITIAL_EPSILON - (step * (INITIAL_EPSILON - FINAL_EPSILON) / EXPLORATION_STEPS))
 
     def save(self, filename):
-        torch.save(self.q_network.state_dict(), filename)
+        try:
+            torch.save(self.q_network.state_dict(), filename)
+        except Exception as e:
+            logging.error(f"Error al guardar el modelo: {e}")
 
     def load(self, filename):
         self.q_network.load_state_dict(torch.load(filename))
         self.update_target_model()
 
 def preprocess_frame(frame):
-    gray = (0.2989 * frame[:, :, 0] + 0.5870 * frame[:, :, 1] + 0.1140 * frame[:, :, 2]).astype(np.uint8)
-    resized = cv2.resize(gray, (84, 84), interpolation=cv2.INTER_AREA)
+    resized = cv2.resize(frame, (84, 84), interpolation=cv2.INTER_AREA)
     return resized / 255.0
 
 def stack_frames(stacked_frames, frame, is_new_episode):
@@ -177,10 +180,14 @@ def stack_frames(stacked_frames, frame, is_new_episode):
     else:
         stacked_frames.append(frame)
     stacked = np.stack(stacked_frames, axis=0)
+    stacked = np.transpose(stacked, (0, 3, 1, 2))  # Cambiar el orden de los ejes
     return stacked, stacked_frames
 
 def evaluate_agent(env, agent, num_episodes):
     total_rewards = []
+    original_epsilon = agent.epsilon
+    agent.epsilon = 0  # Establecer epsilon a 0 para la evaluación
+    
     for _ in range(num_episodes):
         state, _ = env.reset()
         stacked_frames = deque(maxlen=FRAME_STACK)
@@ -195,6 +202,8 @@ def evaluate_agent(env, agent, num_episodes):
             state = next_state
             episode_reward += reward
         total_rewards.append(episode_reward)
+    
+    agent.epsilon = original_epsilon  # Restaurar el valor original de epsilon
     return np.mean(total_rewards)
 
 def smooth_data(data, window_size=100):
@@ -206,38 +215,50 @@ def smooth_data(data, window_size=100):
 def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp):
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 18))
 
-    # Suavizar datos para mejorar la visualización, sólo si es posible
-    if len(scores) >= 100:
-        smoothed_scores = smooth_data(scores)
-    else:
-        smoothed_scores = scores
+    window_size = min(20, len(scores))  # Usamos los últimos 20 episodios o menos si hay menos datos
+    
+    # Calcular promedios móviles
+    smoothed_scores = np.convolve(scores, np.ones(window_size)/window_size, mode='valid')
+    smoothed_avg_q_values = np.convolve(avg_q_values, np.ones(window_size)/window_size, mode='valid')
+    smoothed_losses = smooth_data(losses)  # Mantenemos el suavizado original para las pérdidas
 
-    if len(avg_q_values) >= 100:
-        smoothed_avg_q_values = smooth_data(avg_q_values)
-    else:
-        smoothed_avg_q_values = avg_q_values
-
-    if len(losses) >= 100:
-        smoothed_losses = smooth_data(losses)
-    else:
-        smoothed_losses = losses
+    # Calcular valores mínimos y máximos para el área sombreada
+    min_scores = np.array([min(scores[i:i+window_size]) for i in range(len(smoothed_scores))])
+    max_scores = np.array([max(scores[i:i+window_size]) for i in range(len(smoothed_scores))])
+    
+    min_q_values = np.array([min(avg_q_values[i:i+window_size]) for i in range(len(smoothed_avg_q_values))])
+    max_q_values = np.array([max(avg_q_values[i:i+window_size]) for i in range(len(smoothed_avg_q_values))])
 
     # Gráfico de puntuaciones
-    ax1.plot(range(len(smoothed_scores)), smoothed_scores, label='Smoothed Scores', color='blue', alpha=0.8)
+    ax1.plot(range(len(smoothed_scores)), smoothed_scores, label='Average Score', color='blue')
+    ax1.fill_between(range(len(smoothed_scores)), 
+                     min_scores, 
+                     max_scores, 
+                     alpha=0.3, color='blue')
+    ax1.plot(range(len(scores)), scores, label='Episode Scores', color='gray', alpha=0.5)
     ax1.set_title(f'{game_name} - Episode Scores')
     ax1.set_xlabel('Episode')
     ax1.set_ylabel('Score')
     ax1.legend()
 
+    # Agregar valores máximo y mínimo al gráfico de puntuaciones
+    ax1.axhline(max(scores), color='red', linestyle='--', label='Max Score')
+    ax1.axhline(min(scores), color='green', linestyle='--', label='Min Score')
+
     # Gráfico de valores Q promedio
-    ax2.plot(range(len(smoothed_avg_q_values)), smoothed_avg_q_values, label='Smoothed Avg Q-values', color='green', alpha=0.8)
+    ax2.plot(range(len(smoothed_avg_q_values)), smoothed_avg_q_values, label='Average Q-value', color='green')
+    ax2.fill_between(range(len(smoothed_avg_q_values)), 
+                     min_q_values, 
+                     max_q_values, 
+                     alpha=0.3, color='green')
+    ax2.plot(range(len(avg_q_values)), avg_q_values, label='Episode Q-values', color='gray', alpha=0.5)
     ax2.set_title(f'{game_name} - Average Q-values per Episode')
     ax2.set_xlabel('Episode')
     ax2.set_ylabel('Avg Q-value')
     ax2.legend()
 
     # Gráfico de pérdidas
-    ax3.plot(range(len(smoothed_losses)), smoothed_losses, label='Smoothed Losses', color='red', alpha=0.8)
+    ax3.plot(range(len(smoothed_losses)), smoothed_losses, label='Smoothed Losses', color='red')
     ax3.set_title(f'{game_name} - Loss')
     ax3.set_xlabel('Training Step')
     ax3.set_ylabel('Loss')
@@ -264,6 +285,7 @@ def save_hyperparameters(timestamp):
         'EVALUATION_FREQUENCY': EVALUATION_FREQUENCY,
         'NUM_EVALUATION_EPISODES': NUM_EVALUATION_EPISODES,
         'EPISODES': EPISODES,
+        'TOTAL_STEPS_LIMIT': TOTAL_STEPS_LIMIT,  # Guardar el nuevo parámetro en los hiperparámetros
         'TRAIN_FREQUENCY': TRAIN_FREQUENCY,
         'MAX_STEPS_EPISODE': MAX_STEPS_EPISODE,
         'NEGATIVE_REWARD': NEGATIVE_REWARD  # Guardar el nuevo parámetro en los hiperparámetros
@@ -285,7 +307,7 @@ def main():
     save_hyperparameters(timestamp)
 
     env = gym.make(ENV_NAME, render_mode="rgb_array")
-    state_shape = (FRAME_STACK, 84, 84)
+    state_shape = (FRAME_STACK * 3, 84, 84)
     action_size = env.action_space.n
 
     agent = DQNAgent(state_shape, action_size)
@@ -297,6 +319,9 @@ def main():
     losses = []
 
     for episode in range(EPISODES):
+        if total_steps >= TOTAL_STEPS_LIMIT:
+            break
+        
         state, _ = env.reset()
         state, stacked_frames = stack_frames(stacked_frames, state, True)
         episode_reward = 0
@@ -318,6 +343,10 @@ def main():
             total_steps += 1
             episode_steps += 1
 
+            # Imprimir el total de steps cada 100,000 steps
+            if total_steps % 100000 == 0:
+                logging.info(f"Total steps: {total_steps}")
+
             if total_steps >= TRAINING_START and total_steps % TRAIN_FREQUENCY == 0:
                 agent.replay()
                 agent.update_epsilon(total_steps)
@@ -327,13 +356,14 @@ def main():
                 agent.update_target_model()
 
             if total_steps % SAVE_FREQUENCY == 0:
-                agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_{total_steps}.pth'))
-                with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}_{total_steps}.pkl'), 'wb') as f:
+                agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}.pth'))
+                with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}.pkl'), 'wb') as f:
                     pickle.dump(agent.memory, f)
 
             if total_steps % EVALUATION_FREQUENCY == 0:
                 eval_score = evaluate_agent(env, agent, NUM_EVALUATION_EPISODES)
                 logging.info(f"Step: {total_steps}, Evaluation Score: {eval_score}")
+                torch.cuda.empty_cache()  # Limpiar la caché de la GPU
 
             if done:
                 break
@@ -343,15 +373,19 @@ def main():
         scores.append(episode_reward)
         memory_info = psutil.virtual_memory()
         logging.info(f"Ep.: {episode}, Score: {episode_reward}, e: {agent.epsilon:.2f}, Steps: {episode_steps}, Avg Q-val: {avg_q_value:.2f}, replay: {len(agent.memory)}, Mem Usage: {memory_info.percent}%")
-        gc.collect()
         torch.cuda.empty_cache()
 
         if episode % 200 == 0:
             plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp)
+            gc.collect()
 
-    agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}.pth'))
-    with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}_final_{timestamp}.pkl'), 'wb') as f:
-        pickle.dump(agent.memory, f)
+    try:
+        plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp)
+        agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}.pth'))
+        with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}_final_{timestamp}.pkl'), 'wb') as f:
+            pickle.dump(agent.memory, f)
+    except Exception as e:
+        logging.error(f"Error al guardar el modelo o la memoria de experiencia: {e}")
 
     env = gym.make(ENV_NAME, render_mode="rgb_array")
     env = RecordVideo(env, os.path.join(VIDEOS_FOLDER, f'video_{timestamp}'))

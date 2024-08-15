@@ -36,49 +36,8 @@ def test_ale_lives(games):
 # Ejecutar la función
 test_ale_lives(games)
 
-# Lista de combinaciones de dificultad y modo a comparar
-combinations = [
-    {'difficulty': 0, 'mode': 0},
-    {'difficulty': 1, 'mode': 0},
-    {'difficulty': 0, 'mode': 4},
-    {'difficulty': 1, 'mode': 4},
-    {'difficulty': 0, 'mode': 8},
-    {'difficulty': 1, 'mode': 8},
-]
-
-def run_env(env_name, difficulty, mode, num_episodes=1):
-    env = gym.make(env_name, difficulty=difficulty, mode=mode, render_mode="rgb_array")
-    for episode in range(num_episodes):
-        state, _ = env.reset()
-        done = False
-        total_reward = 0
-        frames = []
-        
-        while not done:
-            action = env.action_space.sample()  # Acción aleatoria
-            next_state, reward, terminated, truncated, _ = env.step(action)
-            frames.append(next_state)
-            total_reward += reward
-            done = terminated or truncated
-            
-        # Mostrar la recompensa total por episodio
-        print(f"Env: {env_name}, Difficulty: {difficulty}, Mode: {mode}, Episode: {episode+1}, Total Reward: {total_reward}")
-        env.close()
-        
-        # Mostrar algunas imágenes del juego
-        plt.figure(figsize=(10, 5))
-        for i, frame in enumerate(frames[:4]):  # Mostrar los primeros 4 frames
-            plt.subplot(1, 4, i+1)
-            plt.imshow(frame)
-            plt.title(f"Frame {i+1}")
-            plt.axis('off')
-        plt.suptitle(f"{env_name} - Difficulty {difficulty} - Mode {mode}")
-        plt.show()
-
 # Ejemplo de uso
-env_name = 'ALE/Breakout-v5'
-for combo in combinations:
-    run_env(env_name, difficulty=combo['difficulty'], mode=combo['mode'], num_episodes=1)
+env_name = 'IceHockeyDeterministic-v4'
 
 def preprocess_frame(frame):
     # Mostrar el frame original
@@ -89,10 +48,8 @@ def preprocess_frame(frame):
     plt.axis('off')
     
     # Convertir a escala de grises
-    gray = (0.2989 * frame[:, :, 0] + 0.5870 * frame[:, :, 1] + 0.1140 * frame[:, :, 2]).astype(np.uint8)
+    resized = cv2.resize(frame, (84, 84), interpolation=cv2.INTER_AREA) / 255.0
     
-    # Redimensionar a 84x84
-    resized = cv2.resize(gray, (84, 84), interpolation=cv2.INTER_AREA)
     
     # Mostrar el frame procesado
     plt.subplot(1, 2, 2)
@@ -105,7 +62,7 @@ def preprocess_frame(frame):
     return resized / 255.0
 
 # Crear el entorno de BreakoutDeterministic-v4
-env = gym.make('BreakoutDeterministic-v4', render_mode='rgb_array')
+env = gym.make('IceHockeyDeterministic-v4', render_mode='rgb_array')
 
 # Reiniciar el entorno para obtener el primer frame
 state, _ = env.reset()
