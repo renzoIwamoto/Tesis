@@ -27,7 +27,7 @@ import json
 ### hacer prueba con normalización de reward. (en caso hayan varios valores que el mayor valor sea 1 y el menor -1)
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'AlienDeterministic-v4'
+ENV_NAME = 'IceHockeyDeterministic-v4'
 GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4
 GAMMA = 0.99
