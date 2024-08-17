@@ -79,8 +79,8 @@ env.close()
 
 
 # Crear los entornos
-env_no_skip = gym.make('BreakoutNoFrameskip-v4', render_mode="rgb_array")
-env_skip = gym.make('BreakoutDeterministic-v4', render_mode="rgb_array")
+env_no_skip = gym.make('SpaceInvadersNoFrameskip-v4', render_mode="rgb_array")
+env_skip = gym.make('SpaceInvadersDeterministic-v4', render_mode="rgb_array")
 
 def check_frame_skip(env, num_steps=4):
     state, _ = env.reset()
@@ -110,7 +110,7 @@ def check_frame_skip(env, num_steps=4):
 print("BreakoutNoFrameskip-v4 (Sin Frame Skip)")
 check_frame_skip(env_no_skip, num_steps=4)
 
-print("BreakoutDeterministic-v4 (Con Frame Skip)")
+print("SpaceInvadersDeterministic-v4 (Con Frame Skip)")
 check_frame_skip(env_skip, num_steps=4)
 
 env_no_skip.close()

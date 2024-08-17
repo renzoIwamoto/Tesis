@@ -27,7 +27,7 @@ import json
 ### hacer prueba con normalización de reward. (en caso hayan varios valores que el mayor valor sea 1 y el menor -1)
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'IceHockeyDeterministic-v4'
+ENV_NAME = 'AlienDeterministic-v4'
 GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4
 GAMMA = 0.99
@@ -113,17 +113,17 @@ class DQNAgent:
         self.target_q_network.load_state_dict(self.q_network.state_dict())
 
     def remember(self, state, action, reward, next_state, done):
-        global MIN_REWARD, MAX_REWARD
-        MIN_REWARD = min(MIN_REWARD, reward)
-        MAX_REWARD = max(MAX_REWARD, reward)
+        #global MIN_REWARD, MAX_REWARD
+        #MIN_REWARD = min(MIN_REWARD, reward)
+        #MAX_REWARD = max(MAX_REWARD, reward)
         
         # Normalizar el reward
-        if MAX_REWARD > MIN_REWARD and MAX_REWARD != 0:
-            normalized_reward = (reward) / (MAX_REWARD)
-        else:
-            normalized_reward = reward
+        #if MAX_REWARD > MIN_REWARD and MAX_REWARD != 0:
+        #    normalized_reward = (reward) / (MAX_REWARD)
+        #else:
+        #    normalized_reward = reward
         
-        self.memory.append((state, action, normalized_reward, next_state, done))
+        self.memory.append((state, action, reward, next_state, done))
 
     def select_action(self, state, env):
         if np.random.rand() <= self.epsilon:
