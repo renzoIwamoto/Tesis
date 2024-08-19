@@ -27,7 +27,7 @@ import json
 ### hacer prueba con normalización de reward. (en caso hayan varios valores que el mayor valor sea 1 y el menor -1)
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'IceHockeyDeterministic-v4'
+ENV_NAME = 'BreakoutDeterministic-v4'
 GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4
 GAMMA = 0.99
@@ -44,7 +44,7 @@ EVALUATION_FREQUENCY = 500000
 NUM_EVALUATION_EPISODES = 5
 EPISODES = 100000  # Límite de episodios
 TOTAL_STEPS_LIMIT = 10000000  # Límite de pasos totales
-TRAIN_FREQUENCY = 8  ### probar 8 y 32 
+TRAIN_FREQUENCY = 32  ### probar 8 y 32 
 MAX_STEPS_EPISODE = 50000
 NEGATIVE_REWARD = 0  # Nuevo parámetro para el reward negativo
 MIN_REWARD = float('inf')
