@@ -27,7 +27,7 @@ import json
 ### hacer prueba con normalización de reward. (en caso hayan varios valores que el mayor valor sea 1 y el menor -1)
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'QbertDeterministic-v4'
+ENV_NAME = 'AlienDeterministic-v4'
 GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4
 GAMMA = 0.99
@@ -36,7 +36,7 @@ MEMORY_SIZE = 100000
 BATCH_SIZE = 128
 TRAINING_START = 100000
 INITIAL_EPSILON = 1
-FINAL_EPSILON = 0.05
+FINAL_EPSILON = 0.1
 EXPLORATION_STEPS = 500000
 UPDATE_TARGET_FREQUENCY = 1000
 SAVE_FREQUENCY = 1000000
