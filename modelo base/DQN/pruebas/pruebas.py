@@ -37,7 +37,7 @@ def test_ale_lives(games):
 test_ale_lives(games)
 
 # Ejemplo de uso
-env_name = 'IceHockeyDeterministic-v4'
+env_name = 'QbertDeterministic-v4'
 
 def preprocess_frame(frame):
     # Mostrar el frame original
@@ -62,7 +62,7 @@ def preprocess_frame(frame):
     return resized / 255.0
 
 # Crear el entorno de BreakoutDeterministic-v4
-env = gym.make('IceHockeyDeterministic-v4', render_mode='rgb_array')
+env = gym.make('QbertDeterministic-v4', render_mode='rgb_array')
 
 # Reiniciar el entorno para obtener el primer frame
 state, _ = env.reset()
