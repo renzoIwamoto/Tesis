@@ -27,7 +27,7 @@ import json
 ### hacer prueba con normalización de reward. (en caso hayan varios valores que el mayor valor sea 1 y el menor -1)
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'QbertDeterministic-v4'
+ENV_NAME = 'PongDeterministic-v4'
 GAME_NAME = ENV_NAME.split('-')[0]
 FRAME_STACK = 4
 GAMMA = 0.99
@@ -49,6 +49,7 @@ MAX_STEPS_EPISODE = 50000
 NEGATIVE_REWARD = 0  # Nuevo parámetro para el reward negativo
 MIN_REWARD = float('inf')
 MAX_REWARD = float('-inf')
+DIFFICULTY = 3
 
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -306,7 +307,7 @@ def main():
 
     save_hyperparameters(timestamp)
 
-    env = gym.make(ENV_NAME, render_mode="rgb_array")
+    env = gym.make(ENV_NAME, difficulty=DIFFICULTY,render_mode="rgb_array")
     state_shape = (FRAME_STACK, 84, 84)
     action_size = env.action_space.n
 
