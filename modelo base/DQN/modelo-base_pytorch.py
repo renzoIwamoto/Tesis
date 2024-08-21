@@ -30,7 +30,7 @@ import json
 
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'SpaceInvadersDeterministic-v4' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros - SpaceInvaders - Alien
+ENV_NAME = 'AlienDeterministic-v4' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros - SpaceInvaders - Alien
 GAME_NAME = ENV_NAME.split('-')[0].replace('/', '_')  # Reemplazar '/' con '_'
 FRAME_STACK = 4
 GAMMA = 0.99
@@ -53,7 +53,7 @@ NEGATIVE_REWARD = 0  # Nuevo parámetro para el reward negativo
 MIN_REWARD = float('inf')
 MAX_REWARD = float('-inf')
 DIFFICULTY = 0
-DEVICE=1
+DEVICE=2
 
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
