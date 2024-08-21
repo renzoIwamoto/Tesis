@@ -30,18 +30,18 @@ import json
 
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'MsPacmanDeterministic-v4'
+ENV_NAME = 'BreakoutDeterministic-v4' # Breakout - Qbert - ALE/MarioBros - SpaceInvaders - Alien
 GAME_NAME = ENV_NAME.split('-')[0].replace('/', '_')  # Reemplazar '/' con '_'
 FRAME_STACK = 4
 GAMMA = 0.99
-LEARNING_RATE = 0.00025
+LEARNING_RATE = 0.0001
 MEMORY_SIZE = 100000
 BATCH_SIZE = 256
-TRAINING_START = 50000
+TRAINING_START = 100000
 INITIAL_EPSILON = 1
-FINAL_EPSILON = 0.1
+FINAL_EPSILON = 0.05
 EXPLORATION_STEPS = 1000000
-UPDATE_TARGET_FREQUENCY = 5000 # 1000, 5000, 2500
+UPDATE_TARGET_FREQUENCY = 2500 # 1000, 5000, 2500
 SAVE_FREQUENCY = 1000000
 EVALUATION_FREQUENCY = 500000
 NUM_EVALUATION_EPISODES = 5
@@ -53,7 +53,7 @@ NEGATIVE_REWARD = 0  # Nuevo parámetro para el reward negativo
 MIN_REWARD = float('inf')
 MAX_REWARD = float('-inf')
 DIFFICULTY = 0
-DEVICE=2
+DEVICE=0
 
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -335,6 +335,9 @@ def main():
         episode_steps = 0
         agent.q_values_episode = []
 
+        # Inicializar el número de vidas
+        lives = env.ale.lives()
+
         for time_step in range(MAX_STEPS_EPISODE):
             action = agent.select_action(state, env)
             next_state, reward, terminated, truncated, _ = env.step(action)
@@ -342,6 +345,12 @@ def main():
             
             if done:
                 reward += NEGATIVE_REWARD  # Añadir el reward negativo cuando se llega a done
+
+                        # Verificar si se ha perdido una vida
+            current_lives = env.ale.lives()
+            if current_lives < lives:
+                reward += -1  # Aplicar el reward negativo
+                lives = current_lives  # Actualizar el número de vidas
 
             next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
             agent.remember(state, action, reward, next_state, done)
