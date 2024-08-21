@@ -30,7 +30,7 @@ import json
 
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'ALE/Breakout-v5'
+ENV_NAME = 'BreakoutDeterministic-v4'
 GAME_NAME = ENV_NAME.split('-')[0].replace('/', '_')  # Reemplazar '/' con '_'
 FRAME_STACK = 4
 GAMMA = 0.99
