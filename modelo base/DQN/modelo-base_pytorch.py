@@ -31,7 +31,7 @@ import json
 
 # Configuración del entorno y parámetros
 ENV_NAME = 'ALE/MarioBros-v5'
-GAME_NAME = ENV_NAME.split('-')[0]
+GAME_NAME = ENV_NAME.split('-')[0].replace('/', '_')  # Reemplazar '/' con '_'
 FRAME_STACK = 4
 GAMMA = 0.99
 LEARNING_RATE = 0.00025
@@ -62,11 +62,11 @@ BASE_FOLDER = '/data/riwamoto'
 GAME_FOLDER = os.path.join(BASE_FOLDER, f'{GAME_NAME}_results')
 os.makedirs(GAME_FOLDER, exist_ok=True)
 
-# Carpeta local para logs, gráficos, videos e hiperparámetros dentro de DQN
+# Crear la carpeta local para logs, gráficos, videos e hiperparámetros dentro de DQN
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # Directorio del script actual (DQN)
 RESULTADOS_FOLDER = os.path.join(SCRIPT_DIR, 'resultados')
 LOCAL_FOLDER = os.path.join(RESULTADOS_FOLDER, f'local_results_{GAME_NAME}_{get_timestamp()}')
-os.makedirs(LOCAL_FOLDER, exist_ok=True)
+os.makedirs(LOCAL_FOLDER, exist_ok=True)  # Asegurarse de que la carpeta exista
 
 # Configuración del logging
 timestamp = get_timestamp()
@@ -80,6 +80,7 @@ logging.basicConfig(level=logging.INFO,
                         logging.FileHandler(log_filepath),
                         logging.StreamHandler()
                     ])
+
 
 class DQNAgent:
     def __init__(self, state_shape, action_size):
