@@ -90,7 +90,7 @@ class DQNAgent:
         self.memory = deque(maxlen=MEMORY_SIZE)
         self.epsilon = INITIAL_EPSILON
 
-        self.device = torch.device("cuda:{device_id}" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device(f"cuda:{device_id}" if torch.cuda.is_available() else "cpu")
         torch.cuda.set_device(self.device)
         self.q_network = self.build_model().to(self.device)
         self.target_q_network = self.build_model().to(self.device)
