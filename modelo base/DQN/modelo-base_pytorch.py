@@ -53,6 +53,7 @@ NEGATIVE_REWARD = 0  # Nuevo parámetro para el reward negativo
 MIN_REWARD = float('inf')
 MAX_REWARD = float('-inf')
 DIFFICULTY = 0
+DEVICE=1
 
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -83,13 +84,14 @@ logging.basicConfig(level=logging.INFO,
 
 
 class DQNAgent:
-    def __init__(self, state_shape, action_size):
+    def __init__(self, state_shape, action_size, device_id=0):
         self.state_shape = state_shape
         self.action_size = action_size
         self.memory = deque(maxlen=MEMORY_SIZE)
         self.epsilon = INITIAL_EPSILON
 
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:{device_id}" if torch.cuda.is_available() else "cpu")
+        torch.cuda.set_device(self.device)
         self.q_network = self.build_model().to(self.device)
         self.target_q_network = self.build_model().to(self.device)
         self.update_target_model()
@@ -315,7 +317,7 @@ def main():
     state_shape = (FRAME_STACK, 84, 84)
     action_size = env.action_space.n
 
-    agent = DQNAgent(state_shape, action_size)
+    agent = DQNAgent(state_shape, action_size, DEVICE)
     stacked_frames = deque(maxlen=FRAME_STACK)
 
     scores = []
