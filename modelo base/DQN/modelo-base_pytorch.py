@@ -30,21 +30,21 @@ import json
 
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'ALE/MarioBros-v5' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - SpaceInvaders - Alien
+ENV_NAME = 'BreakoutDeterministic-v4' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - SpaceInvaders - Alien
 GAME_NAME = ENV_NAME.split('-')[0].replace('/', '_')  # Reemplazar '/' con '_'
 FRAME_STACK = 4
 GAMMA = 0.99
-LEARNING_RATE = 0.0001
+LEARNING_RATE = 0.00025
 MEMORY_SIZE = 100000
-BATCH_SIZE = 256
+BATCH_SIZE = 128
 TRAINING_START = 100000
 INITIAL_EPSILON = 1
-FINAL_EPSILON = 0.05
+FINAL_EPSILON = 0.1
 EXPLORATION_STEPS = 1000000
-UPDATE_TARGET_FREQUENCY = 2500 # 1000, 5000, 2500
+UPDATE_TARGET_FREQUENCY = 1000 # 1000, 5000, 2500
 SAVE_FREQUENCY = 1000000
 EVALUATION_FREQUENCY = 500000
-NUM_EVALUATION_EPISODES = 5
+NUM_EVALUATION_EPISODES = 10
 EPISODES = 100000  # Límite de episodios
 TOTAL_STEPS_LIMIT = 10000000  # Límite de pasos totales
 TRAIN_FREQUENCY = 16
@@ -336,7 +336,7 @@ def main():
         agent.q_values_episode = []
 
         # Inicializar el número de vidas
-        lives = env.ale.lives()
+        lives = env.ale.unwrapped.lives()
 
         for time_step in range(MAX_STEPS_EPISODE):
             action = agent.select_action(state, env)
@@ -347,9 +347,9 @@ def main():
                 reward += NEGATIVE_REWARD  # Añadir el reward negativo cuando se llega a done
 
                         # Verificar si se ha perdido una vida
-            current_lives = env.ale.lives()
+            current_lives = env.ale.unwrapped.lives()
             if current_lives < lives:
-                reward += -1  # Aplicar el reward negativo
+                reward += -10  # Aplicar el reward negativo
                 lives = current_lives  # Actualizar el número de vidas
 
             next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
@@ -393,7 +393,7 @@ def main():
 
         if episode % 200 == 0:
             plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp)
-            gc.collect()
+            #gc.collect()
 
     try:
         plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp)
