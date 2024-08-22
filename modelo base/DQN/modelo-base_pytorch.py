@@ -30,7 +30,7 @@ import json
 
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'BreakoutDeterministic-v4' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - SpaceInvaders - Alien
+ENV_NAME = 'ALE/MarioBros-v5' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - SpaceInvaders - Alien
 GAME_NAME = ENV_NAME.split('-')[0].replace('/', '_')  # Reemplazar '/' con '_'
 FRAME_STACK = 4
 GAMMA = 0.99
