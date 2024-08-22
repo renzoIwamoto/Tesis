@@ -336,7 +336,8 @@ def main():
         agent.q_values_episode = []
 
         # Inicializar el número de vidas
-        lives = env.ale.unwrapped.lives()
+        lives = lives = env.unwrapped.ale.lives()
+
 
         for time_step in range(MAX_STEPS_EPISODE):
             action = agent.select_action(state, env)
@@ -347,7 +348,7 @@ def main():
                 reward += NEGATIVE_REWARD  # Añadir el reward negativo cuando se llega a done
 
                         # Verificar si se ha perdido una vida
-            current_lives = env.ale.unwrapped.lives()
+            current_lives = env.unwrapped.ale.lives()
             if current_lives < lives:
                 reward += -10  # Aplicar el reward negativo
                 lives = current_lives  # Actualizar el número de vidas
