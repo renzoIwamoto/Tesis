@@ -30,7 +30,7 @@ import json
 
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'QbertDeterministic-v4' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - SpaceInvaders - Alien
+ENV_NAME = 'BreakoutDeterministic-v4' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - Pong - Alien
 GAME_NAME = ENV_NAME.split('-')[0].replace('/', '_')  # Reemplazar '/' con '_'
 FRAME_STACK = 4
 GAMMA = 0.99
@@ -39,12 +39,12 @@ MEMORY_SIZE = 100000
 BATCH_SIZE = 128
 TRAINING_START = 100000
 INITIAL_EPSILON = 1
-FINAL_EPSILON = 0.1
+FINAL_EPSILON = 0.05
 EXPLORATION_STEPS = 1000000
 UPDATE_TARGET_FREQUENCY = 1000 # 1000, 5000, 2500
 SAVE_FREQUENCY = 1000000
-EVALUATION_FREQUENCY = 500000
-NUM_EVALUATION_EPISODES = 10
+EVALUATION_FREQUENCY = 50000
+NUM_EVALUATION_EPISODES = 5
 EPISODES = 100000  # Límite de episodios
 TOTAL_STEPS_LIMIT = 10000000  # Límite de pasos totales
 TRAIN_FREQUENCY = 16
@@ -53,7 +53,7 @@ NEGATIVE_REWARD = 0  # Nuevo parámetro para el reward negativo
 MIN_REWARD = float('inf')
 MAX_REWARD = float('-inf')
 DIFFICULTY = 0
-DEVICE=1
+DEVICE=0
 
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -129,6 +129,11 @@ class DQNAgent:
         #    normalized_reward = (reward) / (MAX_REWARD)
         #else:
         #    normalized_reward = reward
+
+        if reward > 0:
+            reward = 1
+        elif reward < 0:
+            reward = -1
         
         self.memory.append((state, action, reward, next_state, done))
 
@@ -301,6 +306,19 @@ def save_hyperparameters(timestamp):
     with open(os.path.join(LOCAL_FOLDER, f'hyperparameters_{timestamp}.json'), 'w') as f:
         json.dump(hyperparameters, f, indent=4)
 
+def plot_evaluation_scores(evaluation_scores, game_name, timestamp):
+    steps, scores = zip(*evaluation_scores)
+    
+    plt.figure(figsize=(12, 6))
+    plt.plot(steps, scores, marker='o')
+    plt.title(f'{game_name} - Evaluation Scores')
+    plt.xlabel('Total Steps')
+    plt.ylabel('Evaluation Score')
+    plt.grid(True)
+    
+    plt.savefig(os.path.join(LOCAL_FOLDER, f'evaluation_scores_{game_name}_{timestamp}.png'))
+    plt.close()
+
 def main():
     timestamp = get_timestamp()
     
@@ -324,6 +342,7 @@ def main():
     total_steps = 0
     avg_q_values_per_episode = []
     losses = []
+    evaluation_scores = []
 
     for episode in range(EPISODES):
         if total_steps >= TOTAL_STEPS_LIMIT:
@@ -344,8 +363,8 @@ def main():
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
             
-            if done:
-                reward += NEGATIVE_REWARD  # Añadir el reward negativo cuando se llega a done
+            #if done:
+            #    reward += NEGATIVE_REWARD  # Añadir el reward negativo cuando se llega a done
 
                         # Verificar si se ha perdido una vida
             #current_lives = env.unwrapped.ale.lives()
@@ -379,6 +398,7 @@ def main():
 
             if total_steps % EVALUATION_FREQUENCY == 0:
                 eval_score = evaluate_agent(env, agent, NUM_EVALUATION_EPISODES)
+                evaluation_scores.append((total_steps, eval_score))  # Guarda el score con el número de pasos
                 logging.info(f"Step: {total_steps}, Evaluation Score: {eval_score}")
                 torch.cuda.empty_cache()  # Limpiar la caché de la GPU
 
@@ -398,6 +418,7 @@ def main():
 
     try:
         plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp)
+        plot_evaluation_scores(evaluation_scores, GAME_NAME, timestamp)  
         agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}.pth'))
         with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}_final_{timestamp}.pkl'), 'wb') as f:
             pickle.dump(agent.memory, f)
