@@ -30,7 +30,7 @@ import json
 
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'BreakoutDeterministic-v4' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - Pong - Alien
+ENV_NAME = 'QbertDeterministic-v4' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - Pong - Alien
 GAME_NAME = ENV_NAME.split('-')[0].replace('/', '_')  # Reemplazar '/' con '_'
 FRAME_STACK = 4
 GAMMA = 0.99
@@ -54,6 +54,8 @@ MIN_REWARD = float('inf')
 MAX_REWARD = float('-inf')
 DIFFICULTY = 0
 DEVICE=0
+
+print(ENV_NAME)
 
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -400,7 +402,7 @@ def main():
                 eval_score = evaluate_agent(env, agent, NUM_EVALUATION_EPISODES)
                 evaluation_scores.append((total_steps, eval_score))  # Guarda el score con el número de pasos
                 logging.info(f"Step: {total_steps}, Evaluation Score: {eval_score}")
-                torch.cuda.empty_cache()  # Limpiar la caché de la GPU
+                #torch.cuda.empty_cache()  # Limpiar la caché de la GPU
 
             if done:
                 break
