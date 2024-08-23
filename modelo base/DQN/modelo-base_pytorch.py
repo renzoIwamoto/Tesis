@@ -30,14 +30,14 @@ import json
 
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'PongDeterministic-v4' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - Pong - Alien
+ENV_NAME = 'BreakoutDeterministic-v4' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - Pong - Alien
 GAME_NAME = ENV_NAME.split('-')[0].replace('/', '_')  # Reemplazar '/' con '_'
 FRAME_STACK = 4
 GAMMA = 0.99
 LEARNING_RATE = 0.0001
 MEMORY_SIZE = 100000
 BATCH_SIZE = 256
-TRAINING_START = 50000
+TRAINING_START = 100000
 INITIAL_EPSILON = 1
 FINAL_EPSILON = 0.05
 EXPLORATION_STEPS = 1000000
@@ -53,7 +53,7 @@ NEGATIVE_REWARD = 0  # Nuevo parámetro para el reward negativo
 MIN_REWARD = float('inf')
 MAX_REWARD = float('-inf')
 DIFFICULTY = 0
-DEVICE=2
+DEVICE=0
 
 print(ENV_NAME)
 
