@@ -53,7 +53,7 @@ NEGATIVE_REWARD = 0  # Nuevo parámetro para el reward negativo
 MIN_REWARD = float('inf')
 MAX_REWARD = float('-inf')
 DIFFICULTY = 0
-DEVICE=2
+DEVICE=3
 
 print(ENV_NAME)
 
