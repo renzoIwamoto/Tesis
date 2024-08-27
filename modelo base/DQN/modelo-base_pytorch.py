@@ -27,6 +27,8 @@ import json
 ### hacer prueba con normalización de reward. (en caso hayan varios valores que el mayor valor sea 1 y el menor -1)
 ### probar mario bros y frogger, descartar boxing
 ### O504, en la universidad usar IP privada
+### probar con RMSProp
+### 3 corridas por cada juego
 
 
 # Configuración del entorno y parámetros
@@ -34,14 +36,14 @@ ENV_NAME = 'ALE/Frogger-v5' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v
 GAME_NAME = ENV_NAME.split('-')[0].replace('/', '_')  # Reemplazar '/' con '_'
 FRAME_STACK = 4
 GAMMA = 0.99
-LEARNING_RATE = 0.0001
+LEARNING_RATE = 0.00025
 MEMORY_SIZE = 100000
-BATCH_SIZE = 256
+BATCH_SIZE = 128
 TRAINING_START = 100000
 INITIAL_EPSILON = 1
-FINAL_EPSILON = 0.05
-EXPLORATION_STEPS = 500000
-UPDATE_TARGET_FREQUENCY = 2500 # 1000, 5000, 2500
+FINAL_EPSILON = 0.1           # podría variar entre juegos
+EXPLORATION_STEPS = 1000000
+UPDATE_TARGET_FREQUENCY = 1000 # 1000, 5000, 2500
 SAVE_FREQUENCY = 1000000
 EVALUATION_FREQUENCY = 50000
 NUM_EVALUATION_EPISODES = 5
