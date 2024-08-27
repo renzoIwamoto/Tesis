@@ -32,7 +32,7 @@ import json
 
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'AlienDeterministic-v4' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - Pong - Alien - Frogger
+ENV_NAME = 'BreakoutDeterministic-v4' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - Pong - Alien - Frogger
 GAME_NAME = ENV_NAME.split('-')[0].replace('/', '_')  # Reemplazar '/' con '_'
 FRAME_STACK = 4
 GAMMA = 0.99
@@ -45,7 +45,7 @@ FINAL_EPSILON = 0.1           # podría variar entre juegos
 EXPLORATION_STEPS = 1000000
 UPDATE_TARGET_FREQUENCY = 1000 # 1000, 5000, 2500
 SAVE_FREQUENCY = 1000000
-EVALUATION_FREQUENCY = 50000
+EVALUATION_FREQUENCY = 10000000
 NUM_EVALUATION_EPISODES = 5
 EPISODES = 100000  # Límite de episodios
 TOTAL_STEPS_LIMIT = 10000000  # Límite de pasos totales
