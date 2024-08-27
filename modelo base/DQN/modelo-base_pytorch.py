@@ -99,7 +99,13 @@ class DQNAgent:
         self.q_network = self.build_model().to(self.device)
         self.target_q_network = self.build_model().to(self.device)
         self.update_target_model()
-        self.optimizer = optim.Adam(self.q_network.parameters(), lr=LEARNING_RATE)
+        #self.optimizer = optim.Adam(self.q_network.parameters(), lr=LEARNING_RATE)
+        self.optimizer = optim.RMSprop(self.q_network.parameters(), 
+                               lr=0.00025, 
+                               momentum=0.95, 
+                               alpha=0.95, 
+                               eps=0.01)
+
 
         self.loss_history = []
         self.q_values_history = []
@@ -299,7 +305,8 @@ def save_hyperparameters(timestamp):
         'TOTAL_STEPS_LIMIT': TOTAL_STEPS_LIMIT,  # Guardar el nuevo parámetro en los hiperparámetros
         'TRAIN_FREQUENCY': TRAIN_FREQUENCY,
         'MAX_STEPS_EPISODE': MAX_STEPS_EPISODE,
-        'NEGATIVE_REWARD': NEGATIVE_REWARD  # Guardar el nuevo parámetro en los hiperparámetros
+        'NEGATIVE_REWARD': NEGATIVE_REWARD,  # Guardar el nuevo parámetro en los hiperparámetros
+        'OBSERVACION': "Rmsprop"
     }
     
     with open(os.path.join(LOCAL_FOLDER, f'hyperparameters_{timestamp}.json'), 'w') as f:
