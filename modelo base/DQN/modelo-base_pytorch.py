@@ -30,7 +30,7 @@ import json
 
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'ALE/Frogger-v5' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - Pong - Alien - Frogger
+ENV_NAME = 'BreakoutDeterministic-v4' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - Pong - Alien - Frogger
 GAME_NAME = ENV_NAME.split('-')[0].replace('/', '_')  # Reemplazar '/' con '_'
 FRAME_STACK = 4
 GAMMA = 0.99
@@ -40,8 +40,8 @@ BATCH_SIZE = 256
 TRAINING_START = 100000
 INITIAL_EPSILON = 1
 FINAL_EPSILON = 0.05
-EXPLORATION_STEPS = 1000000
-UPDATE_TARGET_FREQUENCY = 5000 # 1000, 5000, 2500
+EXPLORATION_STEPS = 500000
+UPDATE_TARGET_FREQUENCY = 2500 # 1000, 5000, 2500
 SAVE_FREQUENCY = 1000000
 EVALUATION_FREQUENCY = 50000
 NUM_EVALUATION_EPISODES = 5
@@ -53,7 +53,7 @@ NEGATIVE_REWARD = 0  # Nuevo parámetro para el reward negativo
 MIN_REWARD = float('inf')
 MAX_REWARD = float('-inf')
 DIFFICULTY = 0
-DEVICE=3
+DEVICE=0
 
 print(ENV_NAME)
 
