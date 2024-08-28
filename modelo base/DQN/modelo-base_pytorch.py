@@ -18,16 +18,6 @@ from gymnasium.wrappers import RecordVideo
 import json
 
 ### promediar entre 10 y 20 últimos episodios (agregar el valor máximo y mínimo) (desviación estándar con barras)
-### se ocupa 6GB
-### investigar como asignar gpu que va a utilizar.
-### dejar solo con límite de steps y no de episodios
-### frecuancia de replay dinámico.
-### en la evaluación no es necesario acciones aleatorias (sacar todo de la política)
-### hacer pruebas con 5 juegos y guardar el video con el mejor.
-### hacer prueba con normalización de reward. (en caso hayan varios valores que el mayor valor sea 1 y el menor -1)
-### probar mario bros y frogger, descartar boxing
-### O504, en la universidad usar IP privada
-### probar con RMSProp
 ### 3 corridas por cada juego
 
 
@@ -38,24 +28,24 @@ FRAME_STACK = 4
 GAMMA = 0.99
 LEARNING_RATE = 0.00025
 MEMORY_SIZE = 100000
-BATCH_SIZE = 128
-TRAINING_START = 100000
+BATCH_SIZE = 256
+TRAINING_START = 500
 INITIAL_EPSILON = 1
-FINAL_EPSILON = 0.1           # podría variar entre juegos
+FINAL_EPSILON = 0.05           # podría variar entre juegos
 EXPLORATION_STEPS = 1000000
 UPDATE_TARGET_FREQUENCY = 1000 # 1000, 5000, 2500
 SAVE_FREQUENCY = 1000000
-EVALUATION_FREQUENCY = 10000000
+EVALUATION_FREQUENCY = 500000
 NUM_EVALUATION_EPISODES = 5
 EPISODES = 100000  # Límite de episodios
-TOTAL_STEPS_LIMIT = 10000000  # Límite de pasos totales
+TOTAL_STEPS_LIMIT = 700  # Límite de pasos totales
 TRAIN_FREQUENCY = 16
 MAX_STEPS_EPISODE = 50000
 NEGATIVE_REWARD = 0  # Nuevo parámetro para el reward negativo
 MIN_REWARD = float('inf')
 MAX_REWARD = float('-inf')
 DIFFICULTY = 0
-DEVICE=2
+DEVICE=1
 
 print(ENV_NAME)
 
@@ -99,12 +89,12 @@ class DQNAgent:
         self.q_network = self.build_model().to(self.device)
         self.target_q_network = self.build_model().to(self.device)
         self.update_target_model()
-        #self.optimizer = optim.Adam(self.q_network.parameters(), lr=LEARNING_RATE)
-        self.optimizer = optim.RMSprop(self.q_network.parameters(), 
-                               lr=0.00025, 
-                               momentum=0.95, 
-                               alpha=0.95, 
-                               eps=0.01)
+        self.optimizer = optim.Adam(self.q_network.parameters(), lr=LEARNING_RATE)
+        #self.optimizer = optim.RMSprop(self.q_network.parameters(), 
+        #                       lr=0.00025, 
+        #                       momentum=0.95, 
+        #                       alpha=0.95, 
+        #                       eps=0.01)
 
 
         self.loss_history = []
@@ -221,7 +211,12 @@ def evaluate_agent(env, agent, num_episodes):
         total_rewards.append(episode_reward)
     
     agent.epsilon = original_epsilon  # Restaurar el valor original de epsilon
-    return np.mean(total_rewards)
+    
+    # Calcular media y desviación estándar de las recompensas obtenidas
+    mean_reward = np.mean(total_rewards)
+    std_reward = np.std(total_rewards)
+    
+    return mean_reward, std_reward
 
 def smooth_data(data, window_size=100):
     """Aplica un suavizado por promedio móvil a los datos."""
@@ -232,7 +227,7 @@ def smooth_data(data, window_size=100):
 def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp):
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 18))
 
-    window_size = min(20, len(scores))  # Usamos los últimos 20 episodios o menos si hay menos datos
+    window_size = min(10, len(scores))  # Usamos los últimos 20 episodios o menos si hay menos datos
     
     # Calcular promedios móviles
     smoothed_scores = np.convolve(scores, np.ones(window_size)/window_size, mode='valid')
@@ -306,7 +301,7 @@ def save_hyperparameters(timestamp):
         'TRAIN_FREQUENCY': TRAIN_FREQUENCY,
         'MAX_STEPS_EPISODE': MAX_STEPS_EPISODE,
         'NEGATIVE_REWARD': NEGATIVE_REWARD,  # Guardar el nuevo parámetro en los hiperparámetros
-        'OBSERVACION': "Rmsprop"
+        'OBSERVACION': ""
     }
     
     with open(os.path.join(LOCAL_FOLDER, f'hyperparameters_{timestamp}.json'), 'w') as f:
@@ -403,9 +398,9 @@ def main():
                     pickle.dump(agent.memory, f)
 
             if total_steps % EVALUATION_FREQUENCY == 0:
-                eval_score = evaluate_agent(env, agent, NUM_EVALUATION_EPISODES)
+                eval_score, deviation = evaluate_agent(env, agent, NUM_EVALUATION_EPISODES)
                 evaluation_scores.append((total_steps, eval_score))  # Guarda el score con el número de pasos
-                logging.info(f"Step: {total_steps}, Evaluation Score: {eval_score}")
+                logging.info(f"Step: {total_steps}, Evaluation Score: {eval_score}, Desviacion: {deviation}")
                 #torch.cuda.empty_cache()  # Limpiar la caché de la GPU
 
             if done:
@@ -430,6 +425,10 @@ def main():
             pickle.dump(agent.memory, f)
     except Exception as e:
         logging.error(f"Error al guardar el modelo o la memoria de experiencia: {e}")
+
+    mean_reward, std_reward = evaluate_agent(env, agent, num_episodes=30)
+    logging.info(f"Final Evaluation - Mean Reward: {mean_reward}, Std Reward: {std_reward}")
+    print(f"Final Evaluation - Mean Reward: {mean_reward}, Std Reward: {std_reward}")
 
     env = gym.make(ENV_NAME, render_mode="rgb_array")
     env = RecordVideo(env, os.path.join(VIDEOS_FOLDER, f'video_{timestamp}'))
