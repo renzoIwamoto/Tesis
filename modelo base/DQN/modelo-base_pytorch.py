@@ -22,7 +22,7 @@ import json
 
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'ALE/Pong-v5' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - Pong - Alien - Frogger
+ENV_NAME = 'ALE/Breakout-v5' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - Pong - Alien - Frogger
 GAME_NAME = ENV_NAME.split('-')[0].replace('/', '_')  # Reemplazar '/' con '_'
 FRAME_STACK = 4
 GAMMA = 0.99
@@ -31,7 +31,7 @@ MEMORY_SIZE = 100000
 BATCH_SIZE = 256
 TRAINING_START = 100000
 INITIAL_EPSILON = 1
-FINAL_EPSILON = 0.05           # podría variar entre juegos
+FINAL_EPSILON = 0.1           # podría variar entre juegos
 EXPLORATION_STEPS = 1000000
 UPDATE_TARGET_FREQUENCY = 1000 # 1000, 5000, 2500
 SAVE_FREQUENCY = 1000000
