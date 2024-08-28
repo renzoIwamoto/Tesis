@@ -22,7 +22,7 @@ import json
 
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'ALE/Qbert-v5' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - Pong - Alien - Frogger
+ENV_NAME = 'ALE/MarioBros-v5' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - Pong - Alien - Frogger
 GAME_NAME = ENV_NAME.split('-')[0].replace('/', '_')  # Reemplazar '/' con '_'
 FRAME_STACK = 4
 GAMMA = 0.99
@@ -45,7 +45,7 @@ NEGATIVE_REWARD = 0  # Nuevo parámetro para el reward negativo
 MIN_REWARD = float('inf')
 MAX_REWARD = float('-inf')
 DIFFICULTY = 0
-DEVICE=1
+DEVICE=2
 
 print(ENV_NAME)
 
