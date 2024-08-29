@@ -31,7 +31,7 @@ MEMORY_SIZE = 100000
 BATCH_SIZE = 256
 TRAINING_START = 100000
 INITIAL_EPSILON = 1
-FINAL_EPSILON = 0.1           # podría variar entre juegos
+FINAL_EPSILON = 0.05           # podría variar entre juegos
 EXPLORATION_STEPS = 1000000
 UPDATE_TARGET_FREQUENCY = 1000 # 1000, 5000, 2500
 SAVE_FREQUENCY = 1000000
@@ -193,7 +193,7 @@ def stack_frames(stacked_frames, frame, is_new_episode):
 def evaluate_agent(env, agent, num_episodes):
     total_rewards = []
     original_epsilon = agent.epsilon
-    agent.epsilon = 0  # Establecer epsilon a 0 para la evaluación
+    agent.epsilon = 0.05  # Establecer epsilon a 0 para la evaluación
     
     for _ in range(num_episodes):
         state, _ = env.reset()
@@ -320,6 +320,45 @@ def plot_evaluation_scores(evaluation_scores, game_name, timestamp):
     plt.savefig(os.path.join(LOCAL_FOLDER, f'evaluation_scores_{game_name}_{timestamp}.png'))
     plt.close()
 
+def record_best_run(env, agent, num_runs=10):
+    best_reward = float('-inf')
+    best_video_path = None
+    timestamp = get_timestamp()
+    
+    for run in range(num_runs):
+        current_video_folder = os.path.join(LOCAL_FOLDER, f'video_run_{run}_{timestamp}')
+        os.makedirs(current_video_folder, exist_ok=True)
+        env = RecordVideo(env, current_video_folder)
+        
+        state, _ = env.reset()
+        stacked_frames = deque(maxlen=FRAME_STACK)
+        state, stacked_frames = stack_frames(stacked_frames, state, True)
+        done = False
+        episode_reward = 0
+        
+        while not done:
+            action = agent.select_action(state, env)
+            next_state, reward, terminated, truncated, _ = env.step(action)
+            done = terminated or truncated
+            next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
+            state = next_state
+            episode_reward += reward
+        
+        env.close()
+        
+        # Comprobar si esta corrida es la mejor
+        if episode_reward > best_reward:
+            best_reward = episode_reward
+            best_video_path = current_video_folder
+    
+    # Guardar solo el mejor video
+    if best_video_path:
+        final_video_folder = os.path.join(os.path.join(LOCAL_FOLDER, 'videos'), f'best_video_{timestamp}')
+        os.rename(best_video_path, final_video_folder)
+        logging.info(f"Best video saved with reward {best_reward} at {final_video_folder}")
+    else:
+        logging.warning("No video was saved because no runs were performed.")
+
 def main():
     timestamp = get_timestamp()
     
@@ -442,7 +481,13 @@ def main():
         done = terminated or truncated
         next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
         state = next_state
+
+     # Grabación del mejor video en 10 intentos
+    record_best_run(env, agent, num_runs=10)
+
     env.close()
+
+   
 
 if __name__ == "__main__":
     main()
