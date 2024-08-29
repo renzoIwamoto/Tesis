@@ -1,0 +1,10 @@
+2024-08-29 10:52:43,657 - INFO - Ep.: 0, Score: 3.0, e: 1.00, Steps: 247, Avg Q-val: nan, replay: 247, Mem Usage: 13.8%
+2024-08-29 10:52:44,094 - INFO - Ep.: 1, Score: 4.0, e: 1.00, Steps: 289, Avg Q-val: nan, replay: 536, Mem Usage: 13.9%
+2024-08-29 10:52:44,193 - INFO - Ep.: 2, Score: 0.0, e: 1.00, Steps: 135, Avg Q-val: nan, replay: 671, Mem Usage: 13.8%
+2024-08-29 10:52:44,298 - INFO - Ep.: 3, Score: 0.0, e: 1.00, Steps: 147, Avg Q-val: nan, replay: 818, Mem Usage: 13.9%
+2024-08-29 10:52:44,402 - INFO - Ep.: 4, Score: 0.0, e: 1.00, Steps: 146, Avg Q-val: nan, replay: 964, Mem Usage: 13.9%
+2024-08-29 10:52:44,519 - INFO - Ep.: 5, Score: 1.0, e: 1.00, Steps: 163, Avg Q-val: nan, replay: 1127, Mem Usage: 13.9%
+2024-08-29 10:52:44,617 - INFO - Ep.: 6, Score: 0.0, e: 1.00, Steps: 134, Avg Q-val: nan, replay: 1261, Mem Usage: 13.9%
+2024-08-29 10:52:44,783 - INFO - Ep.: 7, Score: 3.0, e: 1.00, Steps: 236, Avg Q-val: nan, replay: 1497, Mem Usage: 13.9%
+2024-08-29 10:52:44,916 - INFO - Ep.: 8, Score: 1.0, e: 1.00, Steps: 190, Avg Q-val: nan, replay: 1687, Mem Usage: 13.9%
+2024-08-29 10:52:45,101 - INFO - Ep.: 9, Score: 3.0, e: 1.00, Steps: 261, Avg Q-val: nan, replay: 1948, Mem Usage: 14.0%
