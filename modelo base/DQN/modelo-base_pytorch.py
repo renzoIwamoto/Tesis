@@ -324,7 +324,7 @@ def record_best_run(env, agent, num_runs=10):
     best_reward = float('-inf')
     best_video_path = None
     timestamp = get_timestamp()
-    
+
     for run in range(num_runs):
         current_video_folder = os.path.join(LOCAL_FOLDER, f'video_run_{run}_{timestamp}')
         os.makedirs(current_video_folder, exist_ok=True)
@@ -349,7 +349,19 @@ def record_best_run(env, agent, num_runs=10):
         # Comprobar si esta corrida es la mejor
         if episode_reward > best_reward:
             best_reward = episode_reward
+            if best_video_path:
+                # Eliminar el video anterior si existe uno mejor
+                for root, dirs, files in os.walk(best_video_path):
+                    for file in files:
+                        os.remove(os.path.join(root, file))
+                os.rmdir(best_video_path)
             best_video_path = current_video_folder
+        else:
+            # Eliminar el video de esta corrida ya que no es el mejor
+            for root, dirs, files in os.walk(current_video_folder):
+                for file in files:
+                    os.remove(os.path.join(root, file))
+            os.rmdir(current_video_folder)
     
     # Guardar solo el mejor video
     if best_video_path:
@@ -358,6 +370,7 @@ def record_best_run(env, agent, num_runs=10):
         logging.info(f"Best video saved with reward {best_reward} at {final_video_folder}")
     else:
         logging.warning("No video was saved because no runs were performed.")
+
 
 def main():
     timestamp = get_timestamp()
@@ -433,8 +446,8 @@ def main():
 
             if total_steps % SAVE_FREQUENCY == 0:
                 agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}.pth'))
-                with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}.pkl'), 'wb') as f:
-                    pickle.dump(agent.memory, f)
+                #with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}.pkl'), 'wb') as f:
+                    #pickle.dump(agent.memory, f)
 
             if total_steps % EVALUATION_FREQUENCY == 0:
                 eval_score, deviation = evaluate_agent(env, agent, NUM_EVALUATION_EPISODES)
@@ -457,6 +470,9 @@ def main():
             #gc.collect()
 
     try:
+        mean_reward, std_reward = evaluate_agent(env, agent, num_episodes=30)
+        logging.info(f"Final Evaluation - Mean Reward: {mean_reward}, Std Reward: {std_reward}")
+        print(f"Final Evaluation - Mean Reward: {mean_reward}, Std Reward: {std_reward}")
         plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp)
         plot_evaluation_scores(evaluation_scores, GAME_NAME, timestamp)  
         agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}.pth'))
@@ -465,9 +481,8 @@ def main():
     except Exception as e:
         logging.error(f"Error al guardar el modelo o la memoria de experiencia: {e}")
 
-    mean_reward, std_reward = evaluate_agent(env, agent, num_episodes=30)
-    logging.info(f"Final Evaluation - Mean Reward: {mean_reward}, Std Reward: {std_reward}")
-    print(f"Final Evaluation - Mean Reward: {mean_reward}, Std Reward: {std_reward}")
+    
+
 
     env = gym.make(ENV_NAME, render_mode="rgb_array")
     env = RecordVideo(env, os.path.join(VIDEOS_FOLDER, f'video_{timestamp}'))
