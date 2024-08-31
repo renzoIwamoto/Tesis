@@ -22,7 +22,7 @@ import json
 
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'ALE/Alien-v5' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - Pong - Alien - Frogger
+ENV_NAME = 'ALE/BreakoutDeterministic-v5' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - Pong - Alien - Frogger
 GAME_NAME = ENV_NAME.split('-')[0].replace('/', '_')  # Reemplazar '/' con '_'
 FRAME_STACK = 4
 GAMMA = 0.99
@@ -45,7 +45,7 @@ NEGATIVE_REWARD = 0  # Nuevo parámetro para el reward negativo
 MIN_REWARD = float('inf')
 MAX_REWARD = float('-inf')
 DIFFICULTY = 0
-DEVICE=3
+DEVICE=1
 
 print(ENV_NAME)
 
@@ -327,7 +327,7 @@ def record_best_run(env, agent, num_runs=10):
 
     for run in range(num_runs):
         current_video_folder = os.path.join(LOCAL_FOLDER, f'video_run_{run}_{timestamp}')
-        os.makedirs(current_video_folder, exist_ok=True)
+        os.makedirs(current_video_folder, exist_ok=True)  # Asegurarse de que la carpeta exista
         env = RecordVideo(env, current_video_folder)
         
         state, _ = env.reset()
@@ -366,6 +366,7 @@ def record_best_run(env, agent, num_runs=10):
     # Guardar solo el mejor video
     if best_video_path:
         final_video_folder = os.path.join(os.path.join(LOCAL_FOLDER, 'videos'), f'best_video_{timestamp}')
+        os.makedirs(final_video_folder, exist_ok=True)  # Asegurarse de que la carpeta exista
         os.rename(best_video_path, final_video_folder)
         logging.info(f"Best video saved with reward {best_reward} at {final_video_folder}")
     else:
