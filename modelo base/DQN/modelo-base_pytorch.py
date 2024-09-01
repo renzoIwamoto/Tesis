@@ -22,7 +22,7 @@ import json
 
 
 # Configuración del entorno y parámetros
-ENV_NAME = 'ALE/Frogger-v5' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - Pong - Alien - Frogger
+ENV_NAME = 'ALE/Breakout-v5' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - Pong - Alien - Frogger
 GAME_NAME = ENV_NAME.split('-')[0].replace('/', '_')  # Reemplazar '/' con '_'
 FRAME_STACK = 4
 GAMMA = 0.99
@@ -327,15 +327,15 @@ def record_best_run(env, agent, num_runs=10):
 
     for run in range(num_runs):
         current_video_folder = os.path.join(LOCAL_FOLDER, f'video_run_{run}_{timestamp}')
-        os.makedirs(current_video_folder, exist_ok=True)  # Asegurarse de que la carpeta exista
+        os.makedirs(current_video_folder, exist_ok=True)
         env = RecordVideo(env, current_video_folder)
-        
+
         state, _ = env.reset()
         stacked_frames = deque(maxlen=FRAME_STACK)
         state, stacked_frames = stack_frames(stacked_frames, state, True)
         done = False
         episode_reward = 0
-        
+
         while not done:
             action = agent.select_action(state, env)
             next_state, reward, terminated, truncated, _ = env.step(action)
@@ -343,35 +343,21 @@ def record_best_run(env, agent, num_runs=10):
             next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
             state = next_state
             episode_reward += reward
-        
+
         env.close()
-        
+
         # Comprobar si esta corrida es la mejor
         if episode_reward > best_reward:
             best_reward = episode_reward
-            if best_video_path:
-                # Eliminar el video anterior si existe uno mejor
-                for root, dirs, files in os.walk(best_video_path):
-                    for file in files:
-                        os.remove(os.path.join(root, file))
-                os.rmdir(best_video_path)
             best_video_path = current_video_folder
-        else:
-            # Eliminar el video de esta corrida ya que no es el mejor
-            for root, dirs, files in os.walk(current_video_folder):
-                for file in files:
-                    os.remove(os.path.join(root, file))
-            os.rmdir(current_video_folder)
-    
+
     # Guardar solo el mejor video
     if best_video_path:
         final_video_folder = os.path.join(os.path.join(LOCAL_FOLDER, 'videos'), f'best_video_{timestamp}')
-        os.makedirs(final_video_folder, exist_ok=True)  # Asegurarse de que la carpeta exista
         os.rename(best_video_path, final_video_folder)
         logging.info(f"Best video saved with reward {best_reward} at {final_video_folder}")
     else:
         logging.warning("No video was saved because no runs were performed.")
-
 
 def main():
     timestamp = get_timestamp()
