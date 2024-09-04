@@ -16,13 +16,22 @@ import matplotlib.pyplot as plt
 import logging
 from gymnasium.wrappers import RecordVideo
 import json
+import argparse
 
 ### promediar entre 10 y 20 últimos episodios (agregar el valor máximo y mínimo) (desviación estándar con barras)
 ### 3 corridas por cada juego
+### revisar seed del entorno para que no repita lo mismo
+### en el entrenamiento también usar el seed aleatorio
 
+def get_args():
+    parser = argparse.ArgumentParser(description='Entrenamiento de DQN')
+    parser.add_argument('--env_name', type=str, default='ALE/Frogger-v5', help='Nombre del entorno de Gym')
+    parser.add_argument('--device', type=int, default=0, help='ID de la GPU a utilizar')
+    return parser.parse_args()
 
+args = get_args()
 # Configuración del entorno y parámetros
-ENV_NAME = 'ALE/Frogger-v5' # BreakoutDeterministic-v4 - Qbert - ALE/MarioBros-v5 - Pong - Alien - Frogger
+ENV_NAME = args.env_name # Breakout - Qbert - ALE/MarioBros-v5 - Pong - Alien - Frogger
 GAME_NAME = ENV_NAME.split('-')[0].replace('/', '_')  # Reemplazar '/' con '_'
 FRAME_STACK = 4
 GAMMA = 0.99
@@ -45,7 +54,7 @@ NEGATIVE_REWARD = 0  # Nuevo parámetro para el reward negativo
 MIN_REWARD = float('inf')
 MAX_REWARD = float('-inf')
 DIFFICULTY = 0
-DEVICE=3
+DEVICE=args.device
 
 print(ENV_NAME)
 
@@ -193,10 +202,10 @@ def stack_frames(stacked_frames, frame, is_new_episode):
 def evaluate_agent(env, agent, num_episodes):
     total_rewards = []
     original_epsilon = agent.epsilon
-    agent.epsilon = 0.05  # Establecer epsilon a 0 para la evaluación
+    agent.epsilon = 0.00  # Establecer epsilon a 0 para la evaluación
     
     for _ in range(num_episodes):
-        state, _ = env.reset()
+        state, _ = env.reset(seed=np.random.randint(0, 100000))
         stacked_frames = deque(maxlen=FRAME_STACK)
         state, stacked_frames = stack_frames(stacked_frames, state, True)
         done = False
@@ -227,7 +236,7 @@ def smooth_data(data, window_size=100):
 def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp):
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 18))
 
-    window_size = min(10, len(scores))  # Usamos los últimos 20 episodios o menos si hay menos datos
+    window_size = min(20, len(scores))  # Usamos los últimos 20 episodios o menos si hay menos datos
     
     # Calcular promedios móviles
     smoothed_scores = np.convolve(scores, np.ones(window_size)/window_size, mode='valid')
@@ -330,7 +339,7 @@ def record_best_run(env, agent, num_runs=10):
         os.makedirs(current_video_folder, exist_ok=True)
         env = RecordVideo(env, current_video_folder)
 
-        state, _ = env.reset()
+        state, _ = env.reset(seed=np.random.randint(0, 100000))
         stacked_frames = deque(maxlen=FRAME_STACK)
         state, stacked_frames = stack_frames(stacked_frames, state, True)
         done = False
@@ -388,7 +397,7 @@ def main():
         if total_steps >= TOTAL_STEPS_LIMIT:
             break
         
-        state, _ = env.reset()
+        state, _ = env.reset(seed=np.random.randint(0, 100000))
         state, stacked_frames = stack_frames(stacked_frames, state, True)
         episode_reward = 0
         episode_steps = 0
@@ -463,8 +472,8 @@ def main():
         plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp)
         plot_evaluation_scores(evaluation_scores, GAME_NAME, timestamp)  
         agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}.pth'))
-        with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}_final_{timestamp}.pkl'), 'wb') as f:
-            pickle.dump(agent.memory, f)
+        #with open(os.path.join(REPLAYS_FOLDER, f'experience_replay_{GAME_NAME}_final_{timestamp}.pkl'), 'wb') as f:
+        #    pickle.dump(agent.memory, f)
     except Exception as e:
         logging.error(f"Error al guardar el modelo o la memoria de experiencia: {e}")
 
@@ -473,7 +482,7 @@ def main():
 
     env = gym.make(ENV_NAME, render_mode="rgb_array")
     env = RecordVideo(env, os.path.join(VIDEOS_FOLDER, f'video_{timestamp}'))
-    state, _ = env.reset()
+    state, _ = env.reset(seed=np.random.randint(0, 100000))
     stacked_frames = deque(maxlen=FRAME_STACK)
     state, stacked_frames = stack_frames(stacked_frames, state, True)
     done = False
