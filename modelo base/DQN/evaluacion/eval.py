@@ -101,7 +101,7 @@ def evaluate_agent(env, agent, num_episodes):
         episode_reward = 0
 
         while not done:
-            action = agent.select_action(state)
+            action = agent.select_action(state, env)
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
             next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
