@@ -68,7 +68,7 @@ class DQNAgent:
         with torch.no_grad():
             state = torch.from_numpy(state).float().unsqueeze(0).to(self.device)
             q_values = self.q_network(state)
-            self.q_values_episode.append(torch.max(q_values).item())
+            #self.q_values_episode.append(torch.max(q_values).item())
             return np.argmax(q_values.cpu().data.numpy())
 
 # Preprocesamiento de frames
