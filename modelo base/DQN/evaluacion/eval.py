@@ -38,6 +38,7 @@ class DQNAgent:
         self.action_size = action_size
         self.device = device
         self.q_network = self.build_model().to(self.device)
+        self.epsilon = 0.0
 
     def build_model(self):
         model = nn.Sequential(
