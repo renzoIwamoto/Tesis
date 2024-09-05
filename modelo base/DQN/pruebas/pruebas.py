@@ -48,9 +48,9 @@ def preprocess_frame(frame):
     plt.axis('off')
     
     # Convertir a escala de grises
-    resized = cv2.resize(frame, (84, 84), interpolation=cv2.INTER_AREA) / 255.0
-    
-    
+    gray = (0.2989 * frame[:, :, 0] + 0.5870 * frame[:, :, 1] + 0.1140 * frame[:, :, 2]).astype(np.uint8)
+    resized = cv2.resize(gray, (84, 84), interpolation=cv2.INTER_AREA)
+    resized =  resized / 255.0
     # Mostrar el frame procesado
     plt.subplot(1, 2, 2)
     plt.imshow(resized, cmap='gray')
@@ -62,7 +62,7 @@ def preprocess_frame(frame):
     return resized / 255.0
 
 # Crear el entorno de BreakoutDeterministic-v4
-env = gym.make('QbertDeterministic-v4', render_mode='rgb_array')
+env = gym.make('ALE/Breakout-v5', render_mode='rgb_array')
 
 # Reiniciar el entorno para obtener el primer frame
 state, _ = env.reset()
@@ -73,7 +73,18 @@ next_state, _, _, _, _ = env.step(action)
 
 # Procesar y mostrar el frame
 processed_frame = preprocess_frame(next_state)
-
+next_state, _, _, _, _ = env.step(action)
+processed_frame = preprocess_frame(next_state)
+next_state, _, _, _, _ = env.step(action)
+processed_frame = preprocess_frame(next_state)
+next_state, _, _, _, _ = env.step(action)
+processed_frame = preprocess_frame(next_state)
+next_state, _, _, _, _ = env.step(action)
+processed_frame = preprocess_frame(next_state)
+next_state, _, _, _, _ = env.step(action)
+processed_frame = preprocess_frame(next_state)
+next_state, _, _, _, _ = env.step(action)
+processed_frame = preprocess_frame(next_state)
 # Cerrar el entorno
 env.close()
 
