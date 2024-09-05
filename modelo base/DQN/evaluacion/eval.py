@@ -88,7 +88,7 @@ def stack_frames(stacked_frames, frame, is_new_episode):
 def evaluate_agent(env, agent, num_episodes):
     total_rewards = []
     for episode in range(num_episodes):
-        state, _ = env.reset(seed=np.random.randint(0, 100000))
+        state, _ = env.reset()
         stacked_frames = deque(maxlen=FRAME_STACK)
         state, stacked_frames = stack_frames(stacked_frames, state, True)
         done = False
@@ -122,7 +122,7 @@ def main():
     agent.load_model(PRETRAINED_MODEL_PATH)
 
     # Evaluar el agente
-    evaluate_agent(env, agent, NUM_EVALUATION_EPISODES)
+    evaluate_agent(env, agent, 30)
 
 if __name__ == "__main__":
     main()
