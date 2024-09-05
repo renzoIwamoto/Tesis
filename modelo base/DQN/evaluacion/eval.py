@@ -119,7 +119,7 @@ def evaluate_agent(env, agent, num_episodes):
 # Función principal
 def main():
     # Crear el entorno
-    env = gym.make(ENV_NAME, render_mode="rgb_array", repeat_action_probability=0.05)
+    env = gym.make(ENV_NAME, render_mode="rgb_array", repeat_action_probability=0.025)
     action_size = env.action_space.n
     state_shape = (FRAME_STACK, 84, 84)
 
