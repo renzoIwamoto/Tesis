@@ -92,7 +92,7 @@ def stack_frames(stacked_frames, frame, is_new_episode):
 def evaluate_agent(env, agent, num_episodes):
     total_rewards = []
     original_epsilon = agent.epsilon
-    agent.epsilon = 0.05  # Establecer epsilon a 0 para la evaluación
+    agent.epsilon = 0.025  # Establecer epsilon a 0 para la evaluación
     for episode in range(num_episodes):
         state, _ = env.reset(seed=np.random.randint(0, 100000))
         stacked_frames = deque(maxlen=FRAME_STACK)
