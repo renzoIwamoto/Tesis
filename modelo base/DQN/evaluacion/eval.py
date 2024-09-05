@@ -69,10 +69,10 @@ class DQNAgent:
 
 # Preprocesamiento de frames
 def preprocess_frame(frame):
-    gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+    gray = (0.2989 * frame[:, :, 0] + 0.5870 * frame[:, :, 1] + 0.1140 * frame[:, :, 2]).astype(np.uint8)
     resized = cv2.resize(gray, (84, 84), interpolation=cv2.INTER_AREA)
-    normalized = resized / 255.0
-    return normalized
+    return resized / 255.0
+
 
 # Función para apilar frames
 def stack_frames(stacked_frames, frame, is_new_episode):
@@ -87,8 +87,10 @@ def stack_frames(stacked_frames, frame, is_new_episode):
 # Función de evaluación
 def evaluate_agent(env, agent, num_episodes):
     total_rewards = []
+    original_epsilon = agent.epsilon
+    agent.epsilon = 0.00  # Establecer epsilon a 0 para la evaluación
     for episode in range(num_episodes):
-        state, _ = env.reset()
+        state, _ = env.reset(seed=np.random.randint(0, 100000))
         stacked_frames = deque(maxlen=FRAME_STACK)
         state, stacked_frames = stack_frames(stacked_frames, state, True)
         done = False
