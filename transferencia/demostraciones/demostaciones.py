@@ -12,50 +12,137 @@ import logging
 import argparse
 import json
 import matplotlib.pyplot as plt
-import cv2  # Asegúrate de tener OpenCV instalado
+import cv2
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Parámetros generales (asegúrate de que estos coincidan con los de tu modelo base)
-MEMORY_SIZE = 1000000  # Tamaño del buffer de replay
-BATCH_SIZE = 256
-GAMMA = 0.99
-LEARNING_RATE = 0.00025
-TRAINING_START = 1000000  # Empezar a actualizar las experiencias después de 1,000,000 de pasos
-FRAME_STACK = 4
-MAX_STEPS_EPISODE = 50000
-EXPLORATION_STEPS = 1000000
-INITIAL_EPSILON = 1.0
-FINAL_EPSILON = 0.05
-UPDATE_TARGET_FREQUENCY = 1000  # Frecuencia para actualizar la red target
-SAVE_FREQUENCY = 10000  # Frecuencia para guardar el modelo
-EVALUATION_FREQUENCY = 50000  # Frecuencia para evaluar el agente
-NUM_EVALUATION_EPISODES = 10
-EPISODES = 100000  # Número máximo de episodios
-TOTAL_STEPS_LIMIT = 2000000  # Límite total de pasos
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def get_timestamp():
+    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-# Argumentos
 def get_args():
-    parser = argparse.ArgumentParser(description='Aprendizaje por demostraciones con DQN')
-    parser.add_argument('--env_name', type=str, default='ALE/Frogger-v5', help='Nombre del entorno de Gym')
+    parser = argparse.ArgumentParser(description='Transferencia de aprendizaje en DQN')
+    parser.add_argument('--env_name', type=str, default='ALE/Frogger-v5', help='Nombre del entorno de destino')
     parser.add_argument('--device', type=int, default=0, help='ID de la GPU a utilizar')
-    parser.add_argument('--pretrained_model', type=str, required=True, help='Ruta del modelo preentrenado')
-    parser.add_argument('--local_folder', type=str, default='results', help='Carpeta para guardar resultados')
+    parser.add_argument('--base_model_game', type=str, required=True, help='Nombre del juego del modelo base')
+    parser.add_argument('--pretrained_model', type=str, required=True, help='Ruta al modelo preentrenado')
     return parser.parse_args()
 
-# Agente DQN
+args = get_args()
+
+# Configuración del entorno y parámetros
+ENV_NAME = args.env_name
+BASE_MODEL_GAME = args.base_model_game  # Juego del que se carga el modelo base
+GAME_NAME = ENV_NAME.split('-')[0].replace('/', '_')
+FRAME_STACK = 4
+GAMMA = 0.99
+LEARNING_RATE = 0.00025
+MEMORY_SIZE = 100000
+BATCH_SIZE = 256
+TRAINING_START = 100000
+INITIAL_EPSILON = 1
+FINAL_EPSILON = 0.05
+EXPLORATION_STEPS = 1000000
+UPDATE_TARGET_FREQUENCY = 1000
+SAVE_FREQUENCY = 1000000
+EVALUATION_FREQUENCY = 500000
+NUM_EVALUATION_EPISODES = 5
+EPISODES = 100000
+TOTAL_STEPS_LIMIT = 10000000
+TRAIN_FREQUENCY = 16
+MAX_STEPS_EPISODE = 50000
+NEGATIVE_REWARD = 0
+DIFFICULTY = 0
+DEVICE = args.device
+EXPERT_STEPS = 1000000  # Pasos para generar experiencias con el modelo experto
+
+# Funciones para gráficos
+def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp, local_folder):
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 18))
+
+    window_size = min(20, len(scores))  # Usamos los últimos 20 episodios o menos si hay menos datos
+
+    # Calcular promedios móviles
+    smoothed_scores = np.convolve(scores, np.ones(window_size)/window_size, mode='valid')
+    smoothed_avg_q_values = np.convolve(avg_q_values, np.ones(window_size)/window_size, mode='valid')
+    smoothed_losses = np.convolve(losses, np.ones(window_size)/window_size, mode='valid')
+
+    # Gráfico de puntuaciones
+    ax1.plot(range(len(smoothed_scores)), smoothed_scores, label='Average Score', color='blue')
+    ax1.plot(range(len(scores)), scores, label='Episode Scores', color='gray', alpha=0.5)
+    ax1.set_title(f'{game_name} - Episode Scores')
+    ax1.set_xlabel('Episode')
+    ax1.set_ylabel('Score')
+    ax1.legend()
+
+    # Gráfico de valores Q promedio
+    ax2.plot(range(len(smoothed_avg_q_values)), smoothed_avg_q_values, label='Average Q-value', color='green')
+    ax2.plot(range(len(avg_q_values)), avg_q_values, label='Episode Q-values', color='gray', alpha=0.5)
+    ax2.set_title(f'{game_name} - Average Q-values per Episode')
+    ax2.set_xlabel('Episode')
+    ax2.set_ylabel('Avg Q-value')
+    ax2.legend()
+
+    # Gráfico de pérdidas
+    ax3.plot(range(len(smoothed_losses)), smoothed_losses, label='Smoothed Losses', color='red')
+    ax3.set_title(f'{game_name} - Loss')
+    ax3.set_xlabel('Training Step')
+    ax3.set_ylabel('Loss')
+    ax3.legend()
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(local_folder, f'training_progress_{game_name}_{timestamp}.png'))
+    plt.close()
+
+def plot_evaluation_scores(evaluation_scores, game_name, timestamp, local_folder):
+    steps, scores = zip(*evaluation_scores) if evaluation_scores else ([], [])
+    plt.figure(figsize=(12, 6))
+    plt.plot(steps, scores, marker='o')
+    plt.title(f'{game_name} - Evaluation Scores')
+    plt.xlabel('Total Steps')
+    plt.ylabel('Evaluation Score')
+    plt.grid(True)
+    plt.savefig(os.path.join(local_folder, f'evaluation_scores_{game_name}_{timestamp}.png'))
+    plt.close()
+
+# Guardar hiperparámetros
+def save_hyperparameters(timestamp):
+    hyperparameters = {
+        'ENV_NAME': ENV_NAME,
+        'FRAME_STACK': FRAME_STACK,
+        'GAMMA': GAMMA,
+        'LEARNING_RATE': LEARNING_RATE,
+        'MEMORY_SIZE': MEMORY_SIZE,
+        'BATCH_SIZE': BATCH_SIZE,
+        'TRAINING_START': TRAINING_START,
+        'INITIAL_EPSILON': INITIAL_EPSILON,
+        'FINAL_EPSILON': FINAL_EPSILON,
+        'EXPLORATION_STEPS': EXPLORATION_STEPS,
+        'UPDATE_TARGET_FREQUENCY': UPDATE_TARGET_FREQUENCY,
+        'SAVE_FREQUENCY': SAVE_FREQUENCY,
+        'EVALUATION_FREQUENCY': EVALUATION_FREQUENCY,
+        'NUM_EVALUATION_EPISODES': NUM_EVALUATION_EPISODES,
+        'EPISODES': EPISODES,
+        'TOTAL_STEPS_LIMIT': TOTAL_STEPS_LIMIT,
+        'TRAIN_FREQUENCY': TRAIN_FREQUENCY,
+        'MAX_STEPS_EPISODE': MAX_STEPS_EPISODE,
+        'NEGATIVE_REWARD': NEGATIVE_REWARD,
+        'OBSERVACION': ""
+    }
+
+# Agente DQN actualizado
 class DQNAgent:
-    def __init__(self, state_shape, action_size, device):
+    def __init__(self, state_shape, action_size, device, trainable=True):
         self.state_shape = state_shape
         self.action_size = action_size
         self.memory = deque(maxlen=MEMORY_SIZE)
-        self.epsilon = INITIAL_EPSILON
+        self.epsilon = INITIAL_EPSILON if trainable else 0.0  # Agente preentrenado no explora
+        self.trainable = trainable  # Si este agente se entrena o no
+
         self.device = device
         self.q_network = self.build_model().to(self.device)
         self.target_q_network = self.build_model().to(self.device)
-        self.optimizer = optim.Adam(self.q_network.parameters(), lr=LEARNING_RATE)
+        self.optimizer = optim.Adam(self.q_network.parameters(), lr=LEARNING_RATE) if self.trainable else None
         self.update_target_model()
         self.loss_history = []
         self.q_values_episode = []
@@ -90,7 +177,7 @@ class DQNAgent:
         self.memory.append((state, action, reward, next_state, done))
 
     def replay(self):
-        if len(self.memory) < BATCH_SIZE:
+        if len(self.memory) < BATCH_SIZE or not self.trainable:
             return
         minibatch = random.sample(self.memory, BATCH_SIZE)
         states, actions, rewards, next_states, dones = zip(*minibatch)
@@ -113,7 +200,7 @@ class DQNAgent:
         self.optimizer.step()
 
     def update_epsilon(self, total_steps):
-        if total_steps < EXPLORATION_STEPS:
+        if total_steps < EXPLORATION_STEPS and self.trainable:
             self.epsilon = INITIAL_EPSILON - (INITIAL_EPSILON - FINAL_EPSILON) * (total_steps / EXPLORATION_STEPS)
         else:
             self.epsilon = FINAL_EPSILON
@@ -144,155 +231,6 @@ def stack_frames(stacked_frames, frame, is_new_episode):
     stacked = np.stack(stacked_frames, axis=0)
     return stacked, stacked_frames
 
-# Funciones utilitarias para gráficos y guardado
-def get_timestamp():
-    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-
-def save_hyperparameters(config, path):
-    with open(path, 'w') as f:
-        json.dump(config, f, indent=4)
-    logging.info(f"Hiperparámetros guardados en {path}")
-
-def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp, local_folder):
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 18))
-
-    # Gráfico de puntuaciones
-    ax1.plot(range(len(scores)), scores, label='Episode Scores', color='gray', alpha=0.5)
-    ax1.set_title(f'{game_name} - Episode Scores')
-    ax1.set_xlabel('Episode')
-    ax1.set_ylabel('Score')
-    ax1.legend()
-
-    # Agregar valores máximo y mínimo al gráfico de puntuaciones
-    if scores:
-        ax1.axhline(max(scores), color='red', linestyle='--', label='Max Score')
-        ax1.axhline(min(scores), color='green', linestyle='--', label='Min Score')
-        ax1.legend()
-
-    # Gráfico de valores Q promedio
-    ax2.plot(range(len(avg_q_values)), avg_q_values, label='Average Q-value', color='green')
-    ax2.set_title(f'{game_name} - Average Q-values per Episode')
-    ax2.set_xlabel('Episode')
-    ax2.set_ylabel('Avg Q-value')
-    ax2.legend()
-
-    # Gráfico de pérdidas
-    ax3.plot(range(len(losses)), losses, label='Loss', color='red')
-    ax3.set_title(f'{game_name} - Loss')
-    ax3.set_xlabel('Training Step')
-    ax3.set_ylabel('Loss')
-    ax3.legend()
-
-    plt.tight_layout()
-    save_path = os.path.join(local_folder, f'training_progress_{game_name}_{timestamp}.png')
-    plt.savefig(save_path)
-    plt.close()
-    logging.info(f"Gráfico de progreso de entrenamiento guardado en {save_path}")
-
-def plot_evaluation_scores(evaluation_scores, game_name, timestamp, local_folder):
-    steps, scores = zip(*evaluation_scores) if evaluation_scores else ([], [])
-    plt.figure(figsize=(12, 6))
-    plt.plot(steps, scores, marker='o')
-    plt.title(f'{game_name} - Evaluation Scores')
-    plt.xlabel('Total Steps')
-    plt.ylabel('Evaluation Score')
-    plt.grid(True)
-    save_path = os.path.join(local_folder, f'evaluation_scores_{game_name}_{timestamp}.png')
-    plt.savefig(save_path)
-    plt.close()
-    logging.info(f"Gráfico de puntuaciones de evaluación guardado en {save_path}")
-
-def record_best_run(env, agent, local_folder, game_name, timestamp, num_runs=10):
-    best_reward = float('-inf')
-    best_video_path = None
-
-    for run in range(num_runs):
-        current_video_folder = os.path.join(local_folder, f'video_run_{run}_{timestamp}')
-        os.makedirs(current_video_folder, exist_ok=True)
-        env = gym.wrappers.RecordVideo(env, current_video_folder)
-
-        state, _ = env.reset(seed=np.random.randint(0, 100000))
-        stacked_frames = deque(maxlen=FRAME_STACK)
-        state, stacked_frames = stack_frames(stacked_frames, state, True)
-        done = False
-        episode_reward = 0
-
-        while not done:
-            action = agent.select_action(state, env)
-            next_state, reward, terminated, truncated, _ = env.step(action)
-            done = terminated or truncated
-            next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
-            state = next_state
-            episode_reward += reward
-
-        env.close()
-
-        # Comprobar si esta corrida es la mejor
-        if episode_reward > best_reward:
-            best_reward = episode_reward
-            best_video_path = current_video_folder
-
-    # Guardar solo el mejor video
-    if best_video_path:
-        final_video_folder = os.path.join(local_folder, 'videos', f'best_video_{timestamp}')
-        os.makedirs(os.path.dirname(final_video_folder), exist_ok=True)
-        os.rename(best_video_path, final_video_folder)
-        logging.info(f"Mejor video guardado con recompensa {best_reward} en {final_video_folder}")
-    else:
-        logging.warning("No se guardó ningún video porque no se realizaron corridas.")
-
-# Evaluación del agente
-def evaluate_agent(env, agent, num_episodes):
-    total_rewards = []
-    original_epsilon = agent.epsilon
-    agent.epsilon = 0.0  # No explorar durante la evaluación
-
-    for _ in range(num_episodes):
-        state, _ = env.reset(seed=np.random.randint(0, 100000))
-        done = False
-        episode_reward = 0
-        stacked_frames = deque(maxlen=FRAME_STACK)
-        state, stacked_frames = stack_frames(stacked_frames, state, True)
-
-        while not done:
-            action = agent.select_action(state, env)
-            next_state, reward, terminated, truncated, _ = env.step(action)
-            done = terminated or truncated
-            next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
-            state = next_state
-            episode_reward += reward
-
-        total_rewards.append(episode_reward)
-
-    agent.epsilon = original_epsilon  # Restaurar epsilon original
-    mean_reward = np.mean(total_rewards)
-    std_reward = np.std(total_rewards)
-    return mean_reward, std_reward
-
-# Guardar hiperparámetros
-def save_hyperparameters(timestamp, local_folder, config):
-    hyperparameters_path = os.path.join(local_folder, f'hyperparameters_{timestamp}.json')
-    save_hyperparameters(config, hyperparameters_path)
-
-# Llenar el buffer de replay con el modelo preentrenado
-def generate_experience(env, agent, num_steps):
-    state, _ = env.reset(seed=np.random.randint(0, 100000))
-    stacked_frames = deque(maxlen=FRAME_STACK)
-    state, stacked_frames = stack_frames(stacked_frames, state, True)
-
-    for step in range(num_steps):
-        action = agent.select_action(state, env)
-        next_state, reward, terminated, truncated, _ = env.step(action)
-        done = terminated or truncated
-        next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
-        agent.remember(state, action, reward, next_state, done)
-        state = next_state if not done else env.reset()[0]
-        if done:
-            state, stacked_frames = stack_frames(stacked_frames, state, True)
-
-        if (step + 1) % 100000 == 0:
-            logging.info(f"Generadas {step + 1} experiencias.")
-
 # Función principal
 def main():
     args = get_args()
@@ -300,138 +238,107 @@ def main():
     # Configuración de rutas
     timestamp = get_timestamp()
     game_name = args.env_name.replace('/', '_')
-    local_folder = os.path.join(args.local_folder, f'{game_name}_results_{timestamp}')
+    local_folder = os.path.join('results', f'{game_name}_results_{timestamp}')
     os.makedirs(local_folder, exist_ok=True)
     models_folder = os.path.join(local_folder, 'models')
-    replays_folder = os.path.join(local_folder, 'replays')
     videos_folder = os.path.join(local_folder, 'videos')
     os.makedirs(models_folder, exist_ok=True)
-    os.makedirs(replays_folder, exist_ok=True)
     os.makedirs(videos_folder, exist_ok=True)
 
-    # Guardar hiperparámetros
-    config = {
-        'ENV_NAME': args.env_name,
-        'FRAME_STACK': FRAME_STACK,
-        'GAMMA': GAMMA,
-        'LEARNING_RATE': LEARNING_RATE,
-        'MEMORY_SIZE': MEMORY_SIZE,
-        'BATCH_SIZE': BATCH_SIZE,
-        'TRAINING_START': TRAINING_START,
-        'INITIAL_EPSILON': INITIAL_EPSILON,
-        'FINAL_EPSILON': FINAL_EPSILON,
-        'EXPLORATION_STEPS': EXPLORATION_STEPS,
-        'UPDATE_TARGET_FREQUENCY': UPDATE_TARGET_FREQUENCY,
-        'SAVE_FREQUENCY': SAVE_FREQUENCY,
-        'EVALUATION_FREQUENCY': EVALUATION_FREQUENCY,
-        'NUM_EVALUATION_EPISODES': NUM_EVALUATION_EPISODES,
-        'EPISODES': EPISODES,
-        'TOTAL_STEPS_LIMIT': TOTAL_STEPS_LIMIT,
-        'MAX_STEPS_EPISODE': MAX_STEPS_EPISODE
-    }
-    save_hyperparameters(timestamp, local_folder, config)
+    save_hyperparameters(timestamp)
 
-    # Crear entorno y agente
+    # Crear entorno y agentes
     env = gym.make(args.env_name, render_mode="rgb_array", repeat_action_probability=0)
     state_shape = (FRAME_STACK, 84, 84)
     action_size = env.action_space.n
 
-    agent = DQNAgent(state_shape, action_size, DEVICE)
-    agent.load_pretrained_model(args.pretrained_model)
+    # Agente para generar demostraciones (preentrenado)
+    pretrained_agent = DQNAgent(state_shape, action_size, DEVICE, trainable=False)
+    pretrained_agent.load_pretrained_model(args.pretrained_model)
 
-    # Fase 1: Generar experiencias con el modelo preentrenado
-    logging.info("Fase 1: Generando experiencias con el modelo preentrenado...")
-    generate_experience(env, agent, MEMORY_SIZE)
-    logging.info(f"Experiencias generadas: {len(agent.memory)}")
+    # Agente que se entrenará desde cero utilizando las demostraciones
+    trained_agent = DQNAgent(state_shape, action_size, DEVICE, trainable=True)
 
-    # Guardar el buffer de replay generado
-    replay_path = os.path.join(replays_folder, f'experience_replay_{game_name}_{timestamp}.pkl')
-    with open(replay_path, 'wb') as f:
-        import pickle
-        pickle.dump(agent.memory, f)
-    logging.info(f"Buffer de replay guardado en {replay_path}")
+    # Fase 1: Generar experiencias con el agente preentrenado
+    logging.info("Fase 1: Generando experiencias con el agente preentrenado...")
+    total_steps = 0
+    state, _ = env.reset(seed=np.random.randint(0, 100000))
+    stacked_frames = deque(maxlen=FRAME_STACK)
+    state, stacked_frames = stack_frames(stacked_frames, state, True)
+    
+    while total_steps < EXPERT_STEPS:
+        action = pretrained_agent.select_action(state, env)
+        next_state, reward, terminated, truncated, _ = env.step(action)
+        done = terminated or truncated
+        next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
+        #pretrained_agent.remember(state, action, reward, next_state, done)
+        trained_agent.remember(state, action, reward, next_state, done)  # También se agregan al agente que aprende
+        state = next_state if not done else env.reset()[0]
 
-    # Fase 2: Entrenar la nueva red con las experiencias generadas
+        if total_steps >= TRAINING_START and total_steps % TRAIN_FREQUENCY == 0:
+            trained_agent.replay()
+            trained_agent.update_epsilon(total_steps)
+            losses.append(trained_agent.loss_history[-1])
+
+        if total_steps % UPDATE_TARGET_FREQUENCY == 0:
+            trained_agent.update_target_model()
+
+        total_steps += 1
+
+        if done:
+            state, stacked_frames = stack_frames(stacked_frames, state, True)
+
+    logging.info(f"Experiencias generadas: {len(trained_agent.memory)}")
+
+    # Fase 2: Entrenamiento del agente desde cero con las demostraciones
     logging.info("Fase 2: Entrenando la nueva red...")
+    total_steps = 0
     scores = []
     avg_q_values_per_episode = []
     losses = []
     evaluation_scores = []
-    total_steps = 0
 
     for episode in range(EPISODES):
         if total_steps >= TOTAL_STEPS_LIMIT:
-            logging.info("Se alcanzó el límite total de pasos.")
             break
 
         state, _ = env.reset(seed=np.random.randint(0, 100000))
-        stacked_frames = deque(maxlen=FRAME_STACK)
         state, stacked_frames = stack_frames(stacked_frames, state, True)
         episode_reward = 0
-        agent.q_values_episode = []
         done = False
 
         for step in range(MAX_STEPS_EPISODE):
-            action = agent.select_action(state, env)
+            action = trained_agent.select_action(state, env)
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
             next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
-            agent.remember(state, action, reward, next_state, done)
+            trained_agent.remember(state, action, reward, next_state, done)
             state = next_state
             episode_reward += reward
             total_steps += 1
 
-            if total_steps >= TRAINING_START:
-                agent.replay()
+            if total_steps >= TRAINING_START and total_steps % TRAIN_FREQUENCY == 0:
+                trained_agent.replay()
+                trained_agent.update_epsilon(total_steps)
+                losses.append(trained_agent.loss_history[-1])
 
             if total_steps % UPDATE_TARGET_FREQUENCY == 0:
-                agent.update_target_model()
-                logging.info(f"Red target actualizada en el paso {total_steps}.")
-
-            if total_steps % SAVE_FREQUENCY == 0:
-                model_save_path = os.path.join(models_folder, f'dqn_model_{game_name}_{timestamp}_step_{total_steps}.pth')
-                agent.save(model_save_path)
-
-            if total_steps % EVALUATION_FREQUENCY == 0:
-                mean_reward, std_reward = evaluate_agent(env, agent, NUM_EVALUATION_EPISODES)
-                evaluation_scores.append((total_steps, mean_reward))
-                logging.info(f"Evaluación en paso {total_steps}: Media={mean_reward}, Std={std_reward}")
+                trained_agent.update_target_model()
 
             if done:
                 break
 
         scores.append(episode_reward)
-        avg_q_value = np.mean(agent.q_values_episode) if agent.q_values_episode else 0
+        avg_q_value = np.mean(trained_agent.q_values_episode) if trained_agent.q_values_episode else 0
         avg_q_values_per_episode.append(avg_q_value)
-        memory_info = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES') / (1024.**3)
-        logging.info(f"Ep.: {episode}, Score: {episode_reward}, Epsilon: {agent.epsilon:.2f}, Steps: {step}, Avg Q-val: {avg_q_value:.2f}, Replay: {len(agent.memory)}, Mem Usage: {memory_info:.2f} GB")
 
-        # Actualizar epsilon
-        agent.update_epsilon(total_steps)
+        if total_steps % SAVE_FREQUENCY == 0:
+            model_save_path = os.path.join(models_folder, f'dqn_model_{game_name}_{timestamp}_step_{total_steps}.pth')
+            trained_agent.save(model_save_path)
 
-        # Guardar gráficos cada 200 episodios
-        if (episode + 1) % 200 == 0:
-            plot_training_progress(scores, avg_q_values_per_episode, losses, game_name, timestamp, local_folder)
-
-    # Evaluación final
-    try:
-        mean_reward, std_reward = evaluate_agent(env, agent, num_episodes=30)
-        logging.info(f"Evaluación Final - Media de Recompensas: {mean_reward}, Desviación Estándar: {std_reward}")
-        print(f"Evaluación Final - Media de Recompensas: {mean_reward}, Desviación Estándar: {std_reward}")
-        plot_training_progress(scores, avg_q_values_per_episode, losses, game_name, timestamp, local_folder)
-        plot_evaluation_scores(evaluation_scores, game_name, timestamp, local_folder)
-        final_model_path = os.path.join(models_folder, f'dqn_model_{game_name}_final_{timestamp}.pth')
-        agent.save(final_model_path)
-    except Exception as e:
-        logging.error(f"Error al guardar el modelo o la memoria de experiencia: {e}")
-
-    # Grabación del mejor video
-    try:
-        env = gym.make(args.env_name, render_mode="rgb_array")
-        best_video_path = os.path.join(local_folder, 'videos', f'best_video_{timestamp}')
-        record_best_run(env, agent, local_folder, game_name, timestamp, num_runs=10)
-    except Exception as e:
-        logging.error(f"Error al grabar el mejor video: {e}")
+    # Graficar resultados
+    plot_training_progress(scores, avg_q_values_per_episode, losses, game_name, timestamp, local_folder)
+    plot_evaluation_scores(evaluation_scores, game_name, timestamp, local_folder)
 
     env.close()
 

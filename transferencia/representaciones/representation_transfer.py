@@ -62,12 +62,12 @@ GAME_FOLDER = os.path.join(BASE_FOLDER, f'{GAME_NAME}_transfer_results')
 os.makedirs(GAME_FOLDER, exist_ok=True)
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-RESULTADOS_FOLDER = os.path.join(SCRIPT_DIR, 'resultados')
-LOCAL_FOLDER = os.path.join(RESULTADOS_FOLDER, f'local_results_{GAME_NAME}_transfer_{get_timestamp()}')
+RESULTADOS_FOLDER = os.path.join(SCRIPT_DIR, 'resultados_represetation')
+LOCAL_FOLDER = os.path.join(RESULTADOS_FOLDER, f'local_results_{GAME_NAME}_resultados_represetation_transfer_{get_timestamp()}')
 os.makedirs(LOCAL_FOLDER, exist_ok=True)
 
 timestamp = get_timestamp()
-log_filename = f"{GAME_NAME}_transfer_{timestamp}.log"
+log_filename = f"{GAME_NAME}_resultados_represetation_transfer_{timestamp}.log"
 log_filepath = os.path.join(LOCAL_FOLDER, log_filename)
 
 logging.basicConfig(level=logging.INFO,
@@ -98,6 +98,9 @@ class TransferDQNAgent:
             if 'conv' in name:
                 param.requires_grad = False
 
+        # Reinicializar la penúltima capa lineal (si lo deseas)
+        nn.init.xavier_uniform_(self.q_network[-3].weight)
+        nn.init.zeros_(self.q_network[-3].bias)
         # Crear una nueva capa densa para el espacio de acciones del juego de destino
         self.q_network[-1] = nn.Linear(512, self.action_size).to(self.device)
         
@@ -321,10 +324,10 @@ def main():
     timestamp = get_timestamp()
     
     MODELS_FOLDER = os.path.join(GAME_FOLDER, 'models')
-    REPLAYS_FOLDER = os.path.join(GAME_FOLDER, 'replays')
+    #REPLAYS_FOLDER = os.path.join(GAME_FOLDER, 'replays')
     VIDEOS_FOLDER = os.path.join(LOCAL_FOLDER, 'videos')
     os.makedirs(MODELS_FOLDER, exist_ok=True)
-    os.makedirs(REPLAYS_FOLDER, exist_ok=True)
+    #os.makedirs(REPLAYS_FOLDER, exist_ok=True)
     os.makedirs(VIDEOS_FOLDER, exist_ok=True)
 
     save_hyperparameters(timestamp)
