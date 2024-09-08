@@ -201,9 +201,12 @@ class DQNAgent:
         except Exception as e:
             logging.error(f"Error al guardar el modelo: {e}")
 
-    def load(self, filename):
-        self.q_network.load_state_dict(torch.load(filename))
-        self.update_target_model()
+    def load(self, model_path):
+        try:
+            self.q_network.load_state_dict(torch.load(model_path, map_location=self.device))
+            logging.info(f'Modelo preentrenado cargado desde {model_path}')
+        except Exception as e:
+            logging.error(f'Error al cargar el modelo preentrenado: {e}')
 
 # Entrenamiento en el nivel de dificultad pasado por argumento
 def main():
