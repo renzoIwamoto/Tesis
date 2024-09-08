@@ -25,6 +25,7 @@ def get_args():
     parser.add_argument('--env_name', type=str, default='ALE/Frogger-v5', help='Nombre del entorno de Gym')
     parser.add_argument('--device', type=int, default=0, help='ID de la GPU a utilizar')
     parser.add_argument('--difficulty', type=int, default=0, help='Nivel de dificultad en el que se entrenará')
+    parser.add_argument('--pretrained_model', type=str, help='Ruta al modelo base preentrenado')
     return parser.parse_args()
 
 args = get_args()
@@ -212,10 +213,10 @@ def main():
     BASE_FOLDER = '/data/riwamoto'
     GAME_FOLDER = os.path.join(BASE_FOLDER, f'{GAME_NAME}_results')
     LOCAL_FOLDER = os.path.join(GAME_FOLDER, f'local_results_{GAME_NAME}_{timestamp}')
-    os.makedirs(MODELS_FOLDER, exist_ok=True)
-    os.makedirs(LOCAL_FOLDER, exist_ok=True)
     MODELS_FOLDER = os.path.join(GAME_FOLDER, 'models')
     VIDEOS_FOLDER = os.path.join(LOCAL_FOLDER, 'videos')
+    os.makedirs(MODELS_FOLDER, exist_ok=True)
+    os.makedirs(LOCAL_FOLDER, exist_ok=True)
 
     # Guardar los hiperparámetros
     hyperparameters = {
@@ -248,6 +249,11 @@ def main():
     state_shape = (FRAME_STACK, 84, 84)
     action_size = env.action_space.n
     agent = DQNAgent(state_shape, action_size, DEVICE)
+
+    # Cargar el modelo preentrenado si se proporciona
+    if args.pretrained_model:
+        logging.info(f"Cargando el modelo base desde {args.pretrained_model}")
+        agent.load(args.pretrained_model)
 
     scores = []
     total_steps = 0
