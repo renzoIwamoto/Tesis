@@ -23,6 +23,8 @@ def get_args():
     parser.add_argument('--env_name', type=str, default='ALE/Frogger-v5', help='Nombre del entorno de destino')
     parser.add_argument('--device', type=int, default=0, help='ID de la GPU a utilizar')
     parser.add_argument('--base_model_game', type=str, required=True, help='Nombre del juego del modelo base')
+    parser.add_argument('--base_model_path', type=str, required=True, help='Ruta del modelo preentrenado')
+    parser.add_argument('--freeze_conv_layers', action='store_true', help='Congelar capas convolucionales')
     return parser.parse_args()
 
 args = get_args()
@@ -30,6 +32,7 @@ args = get_args()
 # Configuración del entorno y parámetros
 ENV_NAME = args.env_name
 BASE_MODEL_GAME = args.base_model_game  # Juego del que se carga el modelo base
+BASE_MODEL_PATH = args.base_model_path  # Ruta del modelo preentrenado
 GAME_NAME = ENV_NAME.split('-')[0].replace('/', '_')
 FRAME_STACK = 4
 GAMMA = 0.99
@@ -79,7 +82,7 @@ logging.basicConfig(level=logging.INFO,
 
 
 class TransferDQNAgent:
-    def __init__(self, state_shape, action_size, base_model_game, device_id=0):
+    def __init__(self, state_shape, action_size, base_model_game, base_model_path, freeze_conv_layers, device_id=0):
         self.state_shape = state_shape
         self.action_size = action_size
         self.memory = deque(maxlen=MEMORY_SIZE)
@@ -89,16 +92,16 @@ class TransferDQNAgent:
         torch.cuda.set_device(self.device)
 
         # Cargar el modelo base preentrenado
-        base_model_path = os.path.join(BASE_FOLDER, f'{base_model_game}_results/models/dqn_model_{base_model_game}.pth')
         self.q_network = self.build_model().to(self.device)
         self.load_base_model(base_model_path)
 
-        # Congelar capas convolucionales
-        for name, param in self.q_network.named_parameters():
-            if 'conv' in name:
-                param.requires_grad = False
+        # Opción para congelar capas convolucionales
+        if freeze_conv_layers:
+            for name, param in self.q_network.named_parameters():
+                if 'conv' in name:
+                    param.requires_grad = False
 
-        # Reinicializar la penúltima capa lineal (si lo deseas)
+        # Reinicializar la penúltima capa lineal
         nn.init.xavier_uniform_(self.q_network[-3].weight)
         nn.init.zeros_(self.q_network[-3].bias)
         # Crear una nueva capa densa para el espacio de acciones del juego de destino
@@ -181,6 +184,7 @@ class TransferDQNAgent:
             logging.error(f"Error al guardar el modelo: {e}")
 
 
+# Preprocesamiento de imágenes
 def preprocess_frame(frame):
     gray = (0.2989 * frame[:, :, 0] + 0.5870 * frame[:, :, 1] + 0.1140 * frame[:, :, 2]).astype(np.uint8)
     resized = cv2.resize(gray, (84, 84), interpolation=cv2.INTER_AREA)
@@ -324,10 +328,8 @@ def main():
     timestamp = get_timestamp()
     
     MODELS_FOLDER = os.path.join(GAME_FOLDER, 'models')
-    #REPLAYS_FOLDER = os.path.join(GAME_FOLDER, 'replays')
     VIDEOS_FOLDER = os.path.join(LOCAL_FOLDER, 'videos')
     os.makedirs(MODELS_FOLDER, exist_ok=True)
-    #os.makedirs(REPLAYS_FOLDER, exist_ok=True)
     os.makedirs(VIDEOS_FOLDER, exist_ok=True)
 
     save_hyperparameters(timestamp)
@@ -336,7 +338,7 @@ def main():
     state_shape = (FRAME_STACK, 84, 84)
     action_size = env.action_space.n
 
-    agent = TransferDQNAgent(state_shape, action_size, BASE_MODEL_GAME, DEVICE)
+    agent = TransferDQNAgent(state_shape, action_size, BASE_MODEL_GAME, args.freeze_conv_layers, DEVICE)
     stacked_frames = deque(maxlen=FRAME_STACK)
 
     scores = []
