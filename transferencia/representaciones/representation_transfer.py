@@ -309,6 +309,7 @@ def save_hyperparameters(timestamp):
         'TRAIN_FREQUENCY': TRAIN_FREQUENCY,
         'MAX_STEPS_EPISODE': MAX_STEPS_EPISODE,
         'NEGATIVE_REWARD': NEGATIVE_REWARD,
+        'ARGS': vars(args),  # Guardamos todos los argumentos pasados
         'OBSERVACION': ""
     }
     
