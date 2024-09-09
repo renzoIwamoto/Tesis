@@ -342,7 +342,7 @@ def main():
     state_shape = (FRAME_STACK, 84, 84)
     action_size = env.action_space.n
 
-    agent = TransferDQNAgent(state_shape, action_size, BASE_MODEL_GAME, args.freeze_conv_layers, DEVICE)
+    agent = TransferDQNAgent(state_shape, action_size, BASE_MODEL_GAME,BASE_MODEL_PATH, args.freeze_conv_layers, DEVICE)
     stacked_frames = deque(maxlen=FRAME_STACK)
 
     scores = []
