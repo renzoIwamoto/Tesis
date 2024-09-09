@@ -139,6 +139,7 @@ class DQNAgent:
         self.action_size = action_size
         self.memory = deque(maxlen=MEMORY_SIZE)
         self.epsilon = INITIAL_EPSILON
+        self.trainable = trainable
 
         self.device = torch.device(f"cuda:{device}" if torch.cuda.is_available() else "cpu")
         torch.cuda.set_device(self.device)
@@ -290,7 +291,7 @@ def main():
             total_steps += 1
 
             # Si se han acumulado suficientes pasos, el agente empieza a entrenar
-            if total_steps >= TRAINING_START and total_steps % TRAIN_FREQUENCY == 0:
+            if  total_steps % TRAIN_FREQUENCY == 0:
                 trained_agent.replay()
                 trained_agent.update_epsilon(total_steps)
                 losses.append(trained_agent.loss_history[-1])
