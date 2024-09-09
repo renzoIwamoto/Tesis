@@ -206,9 +206,11 @@ class DQNAgent:
             self.epsilon = FINAL_EPSILON
 
     def load_pretrained_model(self, model_path):
-        self.q_network.load_state_dict(torch.load(model_path, map_location=self.device))
-        self.update_target_model()
-        logging.info(f"Modelo preentrenado cargado desde {model_path}")
+        try:
+            self.q_network.load_state_dict(torch.load(model_path, map_location=self.device))
+            logging.info(f'Modelo preentrenado cargado desde {model_path}')
+        except Exception as e:
+            logging.error(f'Error al cargar el modelo preentrenado: {e}')
 
     def save(self, path):
         torch.save(self.q_network.state_dict(), path)
