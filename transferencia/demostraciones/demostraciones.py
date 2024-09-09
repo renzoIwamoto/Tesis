@@ -170,12 +170,13 @@ class DQNAgent:
         self.target_q_network.load_state_dict(self.q_network.state_dict())
 
     def select_action(self, state, env):
-        if random.random() <= self.epsilon:
+        if np.random.rand() <= self.epsilon:
             return env.action_space.sample()
-        state = torch.from_numpy(state).float().unsqueeze(0).to(self.device)
         with torch.no_grad():
+            state = torch.from_numpy(state).float().unsqueeze(0).to(self.device)
             q_values = self.q_network(state)
-        return q_values.argmax().item()
+            self.q_values_episode.append(torch.max(q_values).item())
+            return np.argmax(q_values.cpu().data.numpy())
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
