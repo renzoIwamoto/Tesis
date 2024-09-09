@@ -263,35 +263,49 @@ def main():
 
     # Agente que se entrenará desde cero utilizando las demostraciones
     trained_agent = DQNAgent(state_shape, action_size, DEVICE_ID, trainable=True)
-
+    
     # Fase 1: Generar experiencias con el agente preentrenado
     logging.info("Fase 1: Generando experiencias con el agente preentrenado...")
     total_steps = 0
+    scores_fase_1 = []
     state, _ = env.reset(seed=np.random.randint(0, 100000))
     stacked_frames = deque(maxlen=FRAME_STACK)
     state, stacked_frames = stack_frames(stacked_frames, state, True)
-    
+
     while total_steps < EXPERT_STEPS:
-        action = pretrained_agent.select_action(state, env)
-        next_state, reward, terminated, truncated, _ = env.step(action)
-        done = terminated or truncated
-        next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
-        #pretrained_agent.remember(state, action, reward, next_state, done)
-        trained_agent.remember(state, action, reward, next_state, done)  # También se agregan al agente que aprende
-        state = next_state if not done else env.reset()[0]
+        episode_reward_fase_1 = 0  # Recompensa del episodio
+        done = False
 
-        if total_steps >= TRAINING_START and total_steps % TRAIN_FREQUENCY == 0:
-            trained_agent.replay()
-            trained_agent.update_epsilon(total_steps)
-            losses.append(trained_agent.loss_history[-1])
+        while not done:
+            action = pretrained_agent.select_action(state, env)
+            next_state, reward, terminated, truncated, _ = env.step(action)
+            done = terminated or truncated
+            next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
+            
+            # Guardar la experiencia en el agente que se va a entrenar
+            trained_agent.remember(state, action, reward, next_state, done)
+            state = next_state if not done else env.reset()[0]  # Reinicio del entorno si el episodio ha terminado
 
-        if total_steps % UPDATE_TARGET_FREQUENCY == 0:
-            trained_agent.update_target_model()
+            episode_reward_fase_1 += reward
+            total_steps += 1
 
-        total_steps += 1
+            # Si se han acumulado suficientes pasos, el agente empieza a entrenar
+            if total_steps >= TRAINING_START and total_steps % TRAIN_FREQUENCY == 0:
+                trained_agent.replay()
+                trained_agent.update_epsilon(total_steps)
+                losses.append(trained_agent.loss_history[-1])
 
-        if done:
-            state, stacked_frames = stack_frames(stacked_frames, state, True)
+            # Actualizar el modelo objetivo cada cierto número de pasos
+            if total_steps % UPDATE_TARGET_FREQUENCY == 0:
+                trained_agent.update_target_model()
+
+            # Si el episodio ha terminado, reiniciamos el entorno y hacemos la impresión
+            if done:
+                scores_fase_1.append(episode_reward_fase_1)
+                logging.info(f"Fase 1 - Pasos totales: {total_steps}, Recompensa del episodio: {episode_reward_fase_1}")
+                # Reiniciar el estado para el siguiente episodio
+                state, _ = env.reset(seed=np.random.randint(0, 100000))
+                state, stacked_frames = stack_frames(stacked_frames, state, True)
 
     logging.info(f"Experiencias generadas: {len(trained_agent.memory)}")
 
