@@ -17,6 +17,7 @@ import logging
 from gymnasium.wrappers import RecordVideo
 import json
 import argparse
+import io 
 
 def get_args():
     parser = argparse.ArgumentParser(description='Transferencia de aprendizaje en DQN')
@@ -134,6 +135,9 @@ class TransferDQNAgent:
         self.target_q_network.load_state_dict(self.q_network.state_dict())
 
     def load_base_model(self, model_path):
+        if not isinstance(model_path, str) or not os.path.isfile(model_path):
+            logging.error(f"Ruta del modelo inválida o el archivo no existe: {model_path}")
+            return
         try:
             self.q_network.load_state_dict(torch.load(model_path, map_location=self.device))
             logging.info(f'Modelo preentrenado cargado desde {model_path}')
