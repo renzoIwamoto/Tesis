@@ -53,7 +53,7 @@ TRAIN_FREQUENCY = 16
 MAX_STEPS_EPISODE = 50000
 NEGATIVE_REWARD = 0
 DIFFICULTY = 0
-DEVICE = args.device
+DEVICE_ID = args.device
 EXPERT_STEPS = 1000000  # Pasos para generar experiencias con el modelo experto
 
 # Funciones para gráficos
@@ -135,14 +135,17 @@ class DQNAgent:
     def __init__(self, state_shape, action_size, device, trainable=True):
         self.state_shape = state_shape
         self.action_size = action_size
+        self.state_shape = state_shape
+        self.action_size = action_size
         self.memory = deque(maxlen=MEMORY_SIZE)
-        self.epsilon = INITIAL_EPSILON if trainable else 0.0  # Agente preentrenado no explora
-        self.trainable = trainable  # Si este agente se entrena o no
+        self.epsilon = INITIAL_EPSILON
 
-        self.device = device
+        self.device = torch.device(f"cuda:{device}" if torch.cuda.is_available() else "cpu")
+        torch.cuda.set_device(self.device)
         self.q_network = self.build_model().to(self.device)
         self.target_q_network = self.build_model().to(self.device)
-        self.optimizer = optim.Adam(self.q_network.parameters(), lr=LEARNING_RATE) if self.trainable else None
+        self.update_target_model()
+        self.optimizer = optim.Adam(self.q_network.parameters(), lr=LEARNING_RATE)
         self.update_target_model()
         self.loss_history = []
         self.q_values_episode = []
@@ -255,11 +258,11 @@ def main():
     action_size = env.action_space.n
 
     # Agente para generar demostraciones (preentrenado)
-    pretrained_agent = DQNAgent(state_shape, action_size, DEVICE, trainable=False)
+    pretrained_agent = DQNAgent(state_shape, action_size, DEVICE_ID, trainable=False)
     pretrained_agent.load_pretrained_model(args.pretrained_model)
 
     # Agente que se entrenará desde cero utilizando las demostraciones
-    trained_agent = DQNAgent(state_shape, action_size, DEVICE, trainable=True)
+    trained_agent = DQNAgent(state_shape, action_size, DEVICE_ID, trainable=True)
 
     # Fase 1: Generar experiencias con el agente preentrenado
     logging.info("Fase 1: Generando experiencias con el agente preentrenado...")
