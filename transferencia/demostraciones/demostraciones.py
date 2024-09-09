@@ -269,6 +269,10 @@ def main():
     logging.info("Fase 1: Generando experiencias con el agente preentrenado...")
     total_steps = 0
     scores_fase_1 = []
+    scores = []
+    avg_q_values_per_episode = []
+    losses = []
+    evaluation_scores = []
     state, _ = env.reset(seed=np.random.randint(0, 100000))
     stacked_frames = deque(maxlen=FRAME_STACK)
     state, stacked_frames = stack_frames(stacked_frames, state, True)
@@ -312,11 +316,7 @@ def main():
 
     # Fase 2: Entrenamiento del agente desde cero con las demostraciones
     logging.info("Fase 2: Entrenando la nueva red...")
-    total_steps = 0
-    scores = []
-    avg_q_values_per_episode = []
-    losses = []
-    evaluation_scores = []
+
 
     for episode in range(EPISODES):
         if total_steps >= TOTAL_STEPS_LIMIT:
