@@ -223,10 +223,9 @@ class DQNAgent:
 
 # Preprocesamiento de imágenes
 def preprocess_frame(frame):
-    gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+    gray = (0.2989 * frame[:, :, 0] + 0.5870 * frame[:, :, 1] + 0.1140 * frame[:, :, 2]).astype(np.uint8)
     resized = cv2.resize(gray, (84, 84), interpolation=cv2.INTER_AREA)
-    normalized = resized / 255.0
-    return normalized
+    return resized / 255.0
 
 # Apilar frames
 def stack_frames(stacked_frames, frame, is_new_episode):
