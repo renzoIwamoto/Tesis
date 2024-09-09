@@ -135,10 +135,10 @@ class TransferDQNAgent:
 
     def load_base_model(self, model_path):
         try:
-            self.q_network.load_state_dict(torch.load(model_path), strict=False)
-            logging.info(f'Modelo base cargado desde {model_path}')
+            self.q_network.load_state_dict(torch.load(model_path, map_location=self.device))
+            logging.info(f'Modelo preentrenado cargado desde {model_path}')
         except Exception as e:
-            logging.error(f'Error al cargar el modelo base: {e}')
+            logging.error(f'Error al cargar el modelo preentrenado: {e}')
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
