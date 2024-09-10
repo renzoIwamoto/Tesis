@@ -372,10 +372,8 @@ def main():
     timestamp = get_timestamp()
     
     MODELS_FOLDER = os.path.join(GAME_FOLDER, 'models')
-    REPLAYS_FOLDER = os.path.join(GAME_FOLDER, 'replays')
     VIDEOS_FOLDER = os.path.join(LOCAL_FOLDER, 'videos')
     os.makedirs(MODELS_FOLDER, exist_ok=True)
-    os.makedirs(REPLAYS_FOLDER, exist_ok=True)
     os.makedirs(VIDEOS_FOLDER, exist_ok=True)
 
     save_hyperparameters(timestamp)

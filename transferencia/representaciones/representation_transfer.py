@@ -17,7 +17,6 @@ import logging
 from gymnasium.wrappers import RecordVideo
 import json
 import argparse
-import io 
 
 def get_args():
     parser = argparse.ArgumentParser(description='Transferencia de aprendizaje en DQN')
@@ -41,7 +40,7 @@ LEARNING_RATE = 0.00025
 MEMORY_SIZE = 100000
 BATCH_SIZE = 256
 TRAINING_START = 100000
-INITIAL_EPSILON = 0.05
+INITIAL_EPSILON = 1
 FINAL_EPSILON = 0.05
 EXPLORATION_STEPS = 1000000
 UPDATE_TARGET_FREQUENCY = 1000
@@ -49,7 +48,7 @@ SAVE_FREQUENCY = 1000000
 EVALUATION_FREQUENCY = 500000
 NUM_EVALUATION_EPISODES = 5
 EPISODES = 100000
-TOTAL_STEPS_LIMIT = 10000000
+TOTAL_STEPS_LIMIT = 2000000
 TRAIN_FREQUENCY = 16
 MAX_STEPS_EPISODE = 50000
 NEGATIVE_REWARD = 0
@@ -61,12 +60,14 @@ print(ENV_NAME)
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-BASE_FOLDER = '/data/riwamoto'
+# Crear la carpeta principal para guardar los modelos en /data/riwamoto
+BASE_FOLDER = '/data/riwamoto/representaciones'
 GAME_FOLDER = os.path.join(BASE_FOLDER, f'{GAME_NAME}_transfer_results')
 os.makedirs(GAME_FOLDER, exist_ok=True)
 
+# Crear la carpeta local para guardar los gráficos, videos y resultados
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-RESULTADOS_FOLDER = os.path.join(SCRIPT_DIR, 'resultados_represetation')
+RESULTADOS_FOLDER = os.path.join(SCRIPT_DIR, 'resultados_representation_transfer')
 LOCAL_FOLDER = os.path.join(RESULTADOS_FOLDER, f'local_results_{GAME_NAME}_resultados_represetation_transfer_{get_timestamp()}')
 os.makedirs(LOCAL_FOLDER, exist_ok=True)
 
@@ -74,13 +75,13 @@ timestamp = get_timestamp()
 log_filename = f"{GAME_NAME}_resultados_represetation_transfer_{timestamp}.log"
 log_filepath = os.path.join(LOCAL_FOLDER, log_filename)
 
+# Configuración de logging
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s',
                     handlers=[
                         logging.FileHandler(log_filepath),
                         logging.StreamHandler()
                     ])
-
 
 class TransferDQNAgent:
     def __init__(self, state_shape, action_size, base_model_game, base_model_path, freeze_conv_layers, device_id=0):
@@ -186,7 +187,6 @@ class TransferDQNAgent:
             torch.save(self.q_network.state_dict(), filename)
         except Exception as e:
             logging.error(f"Error al guardar el modelo: {e}")
-
 
 # Preprocesamiento de imágenes
 def preprocess_frame(frame):
@@ -309,7 +309,7 @@ def save_hyperparameters(timestamp):
         'TRAIN_FREQUENCY': TRAIN_FREQUENCY,
         'MAX_STEPS_EPISODE': MAX_STEPS_EPISODE,
         'NEGATIVE_REWARD': NEGATIVE_REWARD,
-        'ARGS': vars(args),  # Guardamos todos los argumentos pasados
+        'ARGS': vars(args),
         'OBSERVACION': ""
     }
     
@@ -343,7 +343,7 @@ def main():
     state_shape = (FRAME_STACK, 84, 84)
     action_size = env.action_space.n
 
-    agent = TransferDQNAgent(state_shape, action_size, BASE_MODEL_GAME,BASE_MODEL_PATH, args.freeze_conv_layers, DEVICE)
+    agent = TransferDQNAgent(state_shape, action_size, BASE_MODEL_GAME, BASE_MODEL_PATH, args.freeze_conv_layers, DEVICE)
     stacked_frames = deque(maxlen=FRAME_STACK)
 
     scores = []

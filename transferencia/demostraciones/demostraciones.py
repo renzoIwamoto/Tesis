@@ -48,7 +48,7 @@ SAVE_FREQUENCY = 1000000
 EVALUATION_FREQUENCY = 500000
 NUM_EVALUATION_EPISODES = 5
 EPISODES = 100000
-TOTAL_STEPS_LIMIT = 10000000
+TOTAL_STEPS_LIMIT = 2000000
 TRAIN_FREQUENCY = 16
 MAX_STEPS_EPISODE = 50000
 NEGATIVE_REWARD = 0
@@ -91,7 +91,7 @@ def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp, l
     ax3.legend()
 
     plt.tight_layout()
-    plt.savefig(os.path.join(local_folder, f'training_progress_{game_name}_{timestamp}.png'))
+    plt.savefig(os.path.join(local_folder, f'training_progress_{game_name}.png'))
     plt.close()
 
 def plot_evaluation_scores(evaluation_scores, game_name, timestamp, local_folder):
@@ -106,7 +106,7 @@ def plot_evaluation_scores(evaluation_scores, game_name, timestamp, local_folder
     plt.close()
 
 # Guardar hiperparámetros
-def save_hyperparameters(timestamp):
+def save_hyperparameters(timestamp, local_folder):
     hyperparameters = {
         'ENV_NAME': ENV_NAME,
         'FRAME_STACK': FRAME_STACK,
@@ -126,15 +126,15 @@ def save_hyperparameters(timestamp):
         'TOTAL_STEPS_LIMIT': TOTAL_STEPS_LIMIT,
         'TRAIN_FREQUENCY': TRAIN_FREQUENCY,
         'MAX_STEPS_EPISODE': MAX_STEPS_EPISODE,
-        'NEGATIVE_REWARD': NEGATIVE_REWARD,
-        'OBSERVACION': ""
+        'NEGATIVE_REWARD': NEGATIVE_REWARD
     }
+
+    with open(os.path.join(local_folder, f'hyperparameters_{timestamp}.json'), 'w') as f:
+        json.dump(hyperparameters, f, indent=4)
 
 # Agente DQN actualizado
 class DQNAgent:
     def __init__(self, state_shape, action_size, device, trainable=True):
-        self.state_shape = state_shape
-        self.action_size = action_size
         self.state_shape = state_shape
         self.action_size = action_size
         self.memory = deque(maxlen=MEMORY_SIZE)
@@ -142,12 +142,10 @@ class DQNAgent:
         self.trainable = trainable
 
         self.device = torch.device(f"cuda:{device}" if torch.cuda.is_available() else "cpu")
-        torch.cuda.set_device(self.device)
         self.q_network = self.build_model().to(self.device)
         self.target_q_network = self.build_model().to(self.device)
         self.update_target_model()
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=LEARNING_RATE)
-        self.update_target_model()
         self.loss_history = []
         self.q_values_episode = []
 
@@ -244,14 +242,15 @@ def main():
     # Configuración de rutas
     timestamp = get_timestamp()
     game_name = args.env_name.replace('/', '_')
-    local_folder = os.path.join('results', f'{game_name}_results_{timestamp}')
-    os.makedirs(local_folder, exist_ok=True)
-    models_folder = os.path.join(local_folder, 'models')
-    videos_folder = os.path.join(local_folder, 'videos')
+    base_folder = '/data/riwamoto/demostraciones'
+    local_folder = os.path.join(base_folder, f'local_results_{game_name}_{timestamp}')
+    os.makedirs(local_folder, exist_ok=True)  # Crear la carpeta si no existe
+    models_folder = os.path.join(base_folder, 'models')
     os.makedirs(models_folder, exist_ok=True)
+    videos_folder = os.path.join(local_folder, 'videos')
     os.makedirs(videos_folder, exist_ok=True)
 
-    save_hyperparameters(timestamp)
+    save_hyperparameters(timestamp, local_folder)
 
     # Crear entorno y agentes
     env = gym.make(args.env_name, render_mode="rgb_array", repeat_action_probability=0)
@@ -316,7 +315,7 @@ def main():
 
     # Fase 2: Entrenamiento del agente desde cero con las demostraciones
     logging.info("Fase 2: Entrenando la nueva red...")
-
+    pretrained_agent = None
 
     for episode in range(EPISODES):
         if total_steps >= TOTAL_STEPS_LIMIT:
@@ -348,20 +347,29 @@ def main():
             if done:
                 break
 
-        scores.append(episode_reward)
+        # Calcular el valor Q promedio
         avg_q_value = np.mean(trained_agent.q_values_episode) if trained_agent.q_values_episode else 0
         avg_q_values_per_episode.append(avg_q_value)
 
+        # Imprimir el progreso en los logs
+        logging.info(f"Fase 2 - Episodio {episode + 1}/{EPISODES}, "
+                    f"Recompensa: {episode_reward}, "
+                    f"Pasos Totales: {total_steps}, "
+                    f"Valor Q Promedio: {avg_q_value}")
+
+        scores.append(episode_reward)
+
+        # Guardar el modelo periódicamente
         if total_steps % SAVE_FREQUENCY == 0:
-            model_save_path = os.path.join(models_folder, f'dqn_model_{game_name}_{timestamp}_step_{total_steps}.pth')
+            model_save_path = os.path.join(models_folder, f'dqn_model_{game_name}.pth')
             trained_agent.save(model_save_path)
 
     # Graficar resultados
     plot_training_progress(scores, avg_q_values_per_episode, losses, game_name, timestamp, local_folder)
     plot_evaluation_scores(evaluation_scores, game_name, timestamp, local_folder)
-
+    model_save_path = os.path.join(models_folder, f'dqn_model_{game_name}_{timestamp}_step.pth')
+    trained_agent.save(model_save_path)
     env.close()
 
 if __name__ == "__main__":
     main()
-#

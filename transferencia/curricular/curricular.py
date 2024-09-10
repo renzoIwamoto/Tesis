@@ -47,7 +47,7 @@ SAVE_FREQUENCY = 1000000
 EVALUATION_FREQUENCY = 500000
 NUM_EVALUATION_EPISODES = 5
 EPISODES = 100000
-TOTAL_STEPS_LIMIT = 10000000
+TOTAL_STEPS_LIMIT = 2000000
 TRAIN_FREQUENCY = 16
 MAX_STEPS_EPISODE = 50000
 NEGATIVE_REWARD = 0
@@ -213,11 +213,14 @@ def main():
     timestamp = get_timestamp()
 
     # Definir las carpetas para guardar los modelos y resultados
-    BASE_FOLDER = '/data/riwamoto'
-    GAME_FOLDER = os.path.join(BASE_FOLDER, f'{GAME_NAME}_results')
+    BASE_FOLDER = '/data/riwamoto/curricular'  # Para guardar los modelos
+    CURRENT_DIR = os.getcwd()  # Carpeta actual
+    GAME_FOLDER = os.path.join(CURRENT_DIR, f'{GAME_NAME}_results')  # Carpeta para guardar resultados locales
     LOCAL_FOLDER = os.path.join(GAME_FOLDER, f'local_results_{GAME_NAME}_{timestamp}')
-    MODELS_FOLDER = os.path.join(GAME_FOLDER, 'models')
+    MODELS_FOLDER = os.path.join(BASE_FOLDER, 'models')  # Carpeta para guardar los modelos en /data/riwamoto
     VIDEOS_FOLDER = os.path.join(LOCAL_FOLDER, 'videos')
+
+    # Crear las carpetas necesarias
     os.makedirs(MODELS_FOLDER, exist_ok=True)
     os.makedirs(LOCAL_FOLDER, exist_ok=True)
 
