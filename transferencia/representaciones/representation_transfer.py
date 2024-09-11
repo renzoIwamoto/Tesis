@@ -29,6 +29,11 @@ def get_args():
 
 args = get_args()
 
+### modelo fuente y objetivo
+### transferir el mejor modelo de los 3 entrenados en el modelo fuente
+### en el juego objetivo entrenarlo 3 veces con el mejor modelo fuente
+### concentrarme en la parte de congelación de pesos
+
 # Configuración del entorno y parámetros
 ENV_NAME = args.env_name
 BASE_MODEL_GAME = args.base_model_game  # Juego del que se carga el modelo base
@@ -40,15 +45,15 @@ LEARNING_RATE = 0.00025
 MEMORY_SIZE = 100000
 BATCH_SIZE = 256
 TRAINING_START = 100000
-INITIAL_EPSILON = 1
+INITIAL_EPSILON = 1    
 FINAL_EPSILON = 0.05
-EXPLORATION_STEPS = 1000000
+EXPLORATION_STEPS = 1000000  # 500000 - 250000
 UPDATE_TARGET_FREQUENCY = 1000
 SAVE_FREQUENCY = 1000000
 EVALUATION_FREQUENCY = 500000
 NUM_EVALUATION_EPISODES = 5
 EPISODES = 100000
-TOTAL_STEPS_LIMIT = 2000000
+TOTAL_STEPS_LIMIT = 5000000 # bajado a la mitad
 TRAIN_FREQUENCY = 16
 MAX_STEPS_EPISODE = 50000
 NEGATIVE_REWARD = 0
@@ -67,12 +72,12 @@ os.makedirs(GAME_FOLDER, exist_ok=True)
 
 # Crear la carpeta local para guardar los gráficos, videos y resultados
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-RESULTADOS_FOLDER = os.path.join(SCRIPT_DIR, 'resultados_representation_transfer')
-LOCAL_FOLDER = os.path.join(RESULTADOS_FOLDER, f'local_results_{GAME_NAME}_resultados_represetation_transfer_{get_timestamp()}')
+RESULTADOS_FOLDER = os.path.join(SCRIPT_DIR, 'resultados_representation')
+LOCAL_FOLDER = os.path.join(RESULTADOS_FOLDER, f'local_results_{GAME_NAME}_{get_timestamp()}')
 os.makedirs(LOCAL_FOLDER, exist_ok=True)
 
 timestamp = get_timestamp()
-log_filename = f"{GAME_NAME}_resultados_represetation_transfer_{timestamp}.log"
+log_filename = f"{GAME_NAME}_{timestamp}.log"
 log_filepath = os.path.join(LOCAL_FOLDER, log_filename)
 
 # Configuración de logging

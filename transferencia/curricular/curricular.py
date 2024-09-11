@@ -14,6 +14,8 @@ import json
 import matplotlib.pyplot as plt
 import cv2
 
+### congelar las capas convolucionales
+
 # Configuración de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 

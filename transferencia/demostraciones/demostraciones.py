@@ -14,6 +14,8 @@ import json
 import matplotlib.pyplot as plt
 import cv2
 
+### probar los steps de exploracion
+
 # Configuración de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
