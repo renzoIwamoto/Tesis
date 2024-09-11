@@ -11,8 +11,7 @@ import datetime
 import logging
 import argparse
 import json
-import matplotlib.pyplot as plt
-import cv2
+import utils.utils as utils
 
 ### congelar las capas convolucionales
 
@@ -60,75 +59,10 @@ DEVICE = args.device
 
 print(f"Entrenamiento en {ENV_NAME} con dificultad {DIFFICULTY}")
 
-# Funciones para gráficos
-def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp, local_folder):
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 18))
-
-    window_size = min(20, len(scores))  # Usamos los últimos 20 episodios o menos si hay menos datos
-
-    # Calcular promedios móviles
-    smoothed_scores = np.convolve(scores, np.ones(window_size) / window_size, mode='valid')
-    smoothed_avg_q_values = np.convolve(avg_q_values, np.ones(window_size) / window_size, mode='valid')
-    smoothed_losses = np.convolve(losses, np.ones(window_size) / window_size, mode='valid')
-
-    # Gráfico de puntuaciones
-    ax1.plot(range(len(smoothed_scores)), smoothed_scores, label='Average Score', color='blue')
-    ax1.plot(range(len(scores)), scores, label='Episode Scores', color='gray', alpha=0.5)
-    ax1.set_title(f'{game_name} - Episode Scores')
-    ax1.set_xlabel('Episode')
-    ax1.set_ylabel('Score')
-    ax1.legend()
-
-    # Gráfico de valores Q promedio
-    ax2.plot(range(len(smoothed_avg_q_values)), smoothed_avg_q_values, label='Average Q-value', color='green')
-    ax2.plot(range(len(avg_q_values)), avg_q_values, label='Episode Q-values', color='gray', alpha=0.5)
-    ax2.set_title(f'{game_name} - Average Q-values per Episode')
-    ax2.set_xlabel('Episode')
-    ax2.set_ylabel('Avg Q-value')
-    ax2.legend()
-
-    # Gráfico de pérdidas
-    ax3.plot(range(len(smoothed_losses)), smoothed_losses, label='Smoothed Losses', color='red')
-    ax3.set_title(f'{game_name} - Loss')
-    ax3.set_xlabel('Training Step')
-    ax3.set_ylabel('Loss')
-    ax3.legend()
-
-    plt.tight_layout()
-    plt.savefig(os.path.join(local_folder, f'training_progress_{game_name}_{timestamp}.png'))
-    plt.close()
-
-def plot_evaluation_scores(evaluation_scores, game_name, timestamp, local_folder):
-    steps, scores = zip(*evaluation_scores) if evaluation_scores else ([], [])
-    plt.figure(figsize=(12, 6))
-    plt.plot(steps, scores, marker='o')
-    plt.title(f'{game_name} - Evaluation Scores')
-    plt.xlabel('Total Steps')
-    plt.ylabel('Evaluation Score')
-    plt.grid(True)
-    plt.savefig(os.path.join(local_folder, f'evaluation_scores_{game_name}_{timestamp}.png'))
-    plt.close()
-
 # Guardar hiperparámetros
 def save_hyperparameters(hyperparameters, timestamp, local_folder):
     with open(os.path.join(local_folder, f'hyperparameters_{timestamp}.json'), 'w') as f:
         json.dump(hyperparameters, f, indent=4)
-
-# Preprocesamiento de imágenes
-def preprocess_frame(frame):
-    gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-    resized = cv2.resize(gray, (84, 84), interpolation=cv2.INTER_AREA)
-    normalized = resized / 255.0
-    return normalized
-
-def stack_frames(stacked_frames, frame, is_new_episode):
-    frame = preprocess_frame(frame)
-    if is_new_episode:
-        stacked_frames = deque([frame] * FRAME_STACK, maxlen=FRAME_STACK)
-    else:
-        stacked_frames.append(frame)
-    stacked = np.stack(stacked_frames, axis=0)
-    return stacked, stacked_frames
 
 class DQNAgent:
     def __init__(self, state_shape, action_size, device_id=0):
@@ -276,13 +210,13 @@ def main():
             break
         state, _ = env.reset(seed=np.random.randint(0, 100000))
         stacked_frames = deque(maxlen=FRAME_STACK)
-        state, stacked_frames = stack_frames(stacked_frames, state, True)
+        state, stacked_frames = utils.stack_frames(stacked_frames, state, True, FRAME_STACK)
         episode_reward = 0
         for step in range(MAX_STEPS_EPISODE):
             action = agent.select_action(state, env)
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
-            next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
+            next_state, stacked_frames = utils.stack_frames(stacked_frames, next_state, False , FRAME_STACK)
             agent.remember(state, action, reward, next_state, done)
             state = next_state
             episode_reward += reward
@@ -306,8 +240,8 @@ def main():
     agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}_difficulty_{DIFFICULTY}.pth'))
 
     # Graficar progreso
-    plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp, LOCAL_FOLDER)
-    plot_evaluation_scores(evaluation_scores, GAME_NAME, timestamp, LOCAL_FOLDER)
+    utils.plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp, LOCAL_FOLDER)
+    utils.plot_evaluation_scores(evaluation_scores, GAME_NAME, timestamp, LOCAL_FOLDER)
 
     logging.info(f"Entrenamiento finalizado en dificultad {DIFFICULTY}")
     env.close()

@@ -11,8 +11,7 @@ import datetime
 import logging
 import argparse
 import json
-import matplotlib.pyplot as plt
-import cv2
+import utils.utils as utils
 
 ### probar los steps de exploracion
 
@@ -57,55 +56,6 @@ NEGATIVE_REWARD = 0
 DIFFICULTY = 0
 DEVICE_ID = args.device
 EXPERT_STEPS = 1000000  # Pasos para generar experiencias con el modelo experto
-
-# Funciones para gráficos
-def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp, local_folder):
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 18))
-
-    window_size = min(20, len(scores))  # Usamos los últimos 20 episodios o menos si hay menos datos
-
-    # Calcular promedios móviles
-    smoothed_scores = np.convolve(scores, np.ones(window_size)/window_size, mode='valid')
-    smoothed_avg_q_values = np.convolve(avg_q_values, np.ones(window_size)/window_size, mode='valid')
-    smoothed_losses = np.convolve(losses, np.ones(window_size)/window_size, mode='valid')
-
-    # Gráfico de puntuaciones
-    ax1.plot(range(len(smoothed_scores)), smoothed_scores, label='Average Score', color='blue')
-    ax1.plot(range(len(scores)), scores, label='Episode Scores', color='gray', alpha=0.5)
-    ax1.set_title(f'{game_name} - Episode Scores')
-    ax1.set_xlabel('Episode')
-    ax1.set_ylabel('Score')
-    ax1.legend()
-
-    # Gráfico de valores Q promedio
-    ax2.plot(range(len(smoothed_avg_q_values)), smoothed_avg_q_values, label='Average Q-value', color='green')
-    ax2.plot(range(len(avg_q_values)), avg_q_values, label='Episode Q-values', color='gray', alpha=0.5)
-    ax2.set_title(f'{game_name} - Average Q-values per Episode')
-    ax2.set_xlabel('Episode')
-    ax2.set_ylabel('Avg Q-value')
-    ax2.legend()
-
-    # Gráfico de pérdidas
-    ax3.plot(range(len(smoothed_losses)), smoothed_losses, label='Smoothed Losses', color='red')
-    ax3.set_title(f'{game_name} - Loss')
-    ax3.set_xlabel('Training Step')
-    ax3.set_ylabel('Loss')
-    ax3.legend()
-
-    plt.tight_layout()
-    plt.savefig(os.path.join(local_folder, f'training_progress_{game_name}.png'))
-    plt.close()
-
-def plot_evaluation_scores(evaluation_scores, game_name, timestamp, local_folder):
-    steps, scores = zip(*evaluation_scores) if evaluation_scores else ([], [])
-    plt.figure(figsize=(12, 6))
-    plt.plot(steps, scores, marker='o')
-    plt.title(f'{game_name} - Evaluation Scores')
-    plt.xlabel('Total Steps')
-    plt.ylabel('Evaluation Score')
-    plt.grid(True)
-    plt.savefig(os.path.join(local_folder, f'evaluation_scores_{game_name}_{timestamp}.png'))
-    plt.close()
 
 # Guardar hiperparámetros
 def save_hyperparameters(timestamp, local_folder):
@@ -221,22 +171,6 @@ class DQNAgent:
         torch.save(self.q_network.state_dict(), path)
         logging.info(f"Modelo guardado en {path}")
 
-# Preprocesamiento de imágenes
-def preprocess_frame(frame):
-    gray = (0.2989 * frame[:, :, 0] + 0.5870 * frame[:, :, 1] + 0.1140 * frame[:, :, 2]).astype(np.uint8)
-    resized = cv2.resize(gray, (84, 84), interpolation=cv2.INTER_AREA)
-    return resized / 255.0
-
-# Apilar frames
-def stack_frames(stacked_frames, frame, is_new_episode):
-    frame = preprocess_frame(frame)
-    if is_new_episode:
-        stacked_frames = deque([frame] * FRAME_STACK, maxlen=FRAME_STACK)
-    else:
-        stacked_frames.append(frame)
-    stacked = np.stack(stacked_frames, axis=0)
-    return stacked, stacked_frames
-
 # Función principal
 def main():
     args = get_args()
@@ -245,7 +179,10 @@ def main():
     timestamp = get_timestamp()
     game_name = args.env_name.replace('/', '_')
     base_folder = '/data/riwamoto/demostraciones'
-    local_folder = os.path.join(base_folder, f'local_results_{game_name}_{timestamp}')
+
+    SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # Directorio del script actual (DQN)
+    RESULTADOS_FOLDER = os.path.join(SCRIPT_DIR, 'resultados')
+    local_folder = os.path.join(RESULTADOS_FOLDER, f'local_results_{GAME_NAME}_{get_timestamp()}')
     os.makedirs(local_folder, exist_ok=True)  # Crear la carpeta si no existe
     models_folder = os.path.join(base_folder, 'models')
     os.makedirs(models_folder, exist_ok=True)
@@ -276,7 +213,7 @@ def main():
     evaluation_scores = []
     state, _ = env.reset(seed=np.random.randint(0, 100000))
     stacked_frames = deque(maxlen=FRAME_STACK)
-    state, stacked_frames = stack_frames(stacked_frames, state, True)
+    state, stacked_frames = utils.stack_frames(stacked_frames, state, True, FRAME_STACK)
 
     while total_steps < EXPERT_STEPS:
         episode_reward_fase_1 = 0  # Recompensa del episodio
@@ -286,7 +223,7 @@ def main():
             action = pretrained_agent.select_action(state, env)
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
-            next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
+            next_state, stacked_frames = utils.stack_frames(stacked_frames, next_state, False, FRAME_STACK)
             
             # Guardar la experiencia en el agente que se va a entrenar
             trained_agent.remember(state, action, reward, next_state, done)
@@ -311,20 +248,20 @@ def main():
                 logging.info(f"Fase 1 - Pasos totales: {total_steps}, Recompensa del episodio: {episode_reward_fase_1}")
                 # Reiniciar el estado para el siguiente episodio
                 state, _ = env.reset(seed=np.random.randint(0, 100000))
-                state, stacked_frames = stack_frames(stacked_frames, state, True)
+                state, stacked_frames = utils.stack_frames(stacked_frames, state, True, FRAME_STACK)
 
     logging.info(f"Experiencias generadas: {len(trained_agent.memory)}")
 
     # Fase 2: Entrenamiento del agente desde cero con las demostraciones
     logging.info("Fase 2: Entrenando la nueva red...")
-    pretrained_agent = None
+    del pretrained_agent 
 
     for episode in range(EPISODES):
         if total_steps >= TOTAL_STEPS_LIMIT:
             break
 
         state, _ = env.reset(seed=np.random.randint(0, 100000))
-        state, stacked_frames = stack_frames(stacked_frames, state, True)
+        state, stacked_frames = utils.stack_frames(stacked_frames, state, True, FRAME_STACK)
         episode_reward = 0
         done = False
 
@@ -332,7 +269,7 @@ def main():
             action = trained_agent.select_action(state, env)
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
-            next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
+            next_state, stacked_frames = utils.stack_frames(stacked_frames, next_state, False, FRAME_STACK)
             trained_agent.remember(state, action, reward, next_state, done)
             state = next_state
             episode_reward += reward
@@ -367,8 +304,8 @@ def main():
             trained_agent.save(model_save_path)
 
     # Graficar resultados
-    plot_training_progress(scores, avg_q_values_per_episode, losses, game_name, timestamp, local_folder)
-    plot_evaluation_scores(evaluation_scores, game_name, timestamp, local_folder)
+    utils.plot_training_progress(scores, avg_q_values_per_episode, losses, game_name, timestamp, local_folder)
+    utils.plot_evaluation_scores(evaluation_scores, game_name, timestamp, local_folder)
     model_save_path = os.path.join(models_folder, f'dqn_model_{game_name}_{timestamp}_step.pth')
     trained_agent.save(model_save_path)
     env.close()

@@ -8,15 +8,12 @@ import random
 import gymnasium as gym
 import os
 import datetime
-import pickle
 import psutil
-import gc
-import cv2
-import matplotlib.pyplot as plt
 import logging
 from gymnasium.wrappers import RecordVideo
 import json
 import argparse
+import utils.utils as utils
 
 def get_args():
     parser = argparse.ArgumentParser(description='Transferencia de aprendizaje en DQN')
@@ -193,105 +190,6 @@ class TransferDQNAgent:
         except Exception as e:
             logging.error(f"Error al guardar el modelo: {e}")
 
-# Preprocesamiento de imágenes
-def preprocess_frame(frame):
-    gray = (0.2989 * frame[:, :, 0] + 0.5870 * frame[:, :, 1] + 0.1140 * frame[:, :, 2]).astype(np.uint8)
-    resized = cv2.resize(gray, (84, 84), interpolation=cv2.INTER_AREA)
-    return resized / 255.0
-
-def stack_frames(stacked_frames, frame, is_new_episode):
-    frame = preprocess_frame(frame)
-    if is_new_episode:
-        stacked_frames = deque([frame] * FRAME_STACK, maxlen=FRAME_STACK)
-    else:
-        stacked_frames.append(frame)
-    stacked = np.stack(stacked_frames, axis=0)
-    return stacked, stacked_frames
-
-def evaluate_agent(env, agent, num_episodes):
-    total_rewards = []
-    original_epsilon = agent.epsilon
-    agent.epsilon = 0.00  # Establecer epsilon a 0 para la evaluación
-    
-    for _ in range(num_episodes):
-        state, _ = env.reset(seed=np.random.randint(0, 100000))
-        stacked_frames = deque(maxlen=FRAME_STACK)
-        state, stacked_frames = stack_frames(stacked_frames, state, True)
-        done = False
-        episode_reward = 0
-        while not done:
-            action = agent.select_action(state, env)
-            next_state, reward, terminated, truncated, _ = env.step(action)
-            done = terminated or truncated
-            next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
-            state = next_state
-            episode_reward += reward
-        total_rewards.append(episode_reward)
-    
-    agent.epsilon = original_epsilon  # Restaurar el valor original de epsilon
-    
-    # Calcular media y desviación estándar de las recompensas obtenidas
-    mean_reward = np.mean(total_rewards)
-    std_reward = np.std(total_rewards)
-    
-    return mean_reward, std_reward
-
-def smooth_data(data, window_size=100):
-    """Aplica un suavizado por promedio móvil a los datos."""
-    if len(data) < window_size:
-        return data
-    return np.convolve(data, np.ones(window_size) / window_size, mode='valid')
-
-def plot_training_progress(scores, avg_q_values, losses, game_name, timestamp):
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 18))
-
-    window_size = min(20, len(scores))
-    
-    smoothed_scores = np.convolve(scores, np.ones(window_size) / window_size, mode='valid')
-    smoothed_avg_q_values = np.convolve(avg_q_values, np.ones(window_size) / window_size, mode='valid')
-    smoothed_losses = smooth_data(losses)
-
-    min_scores = np.array([min(scores[i:i+window_size]) for i in range(len(smoothed_scores))])
-    max_scores = np.array([max(scores[i:i+window_size]) for i in range(len(smoothed_scores))])
-    
-    min_q_values = np.array([min(avg_q_values[i:i+window_size]) for i in range(len(smoothed_avg_q_values))])
-    max_q_values = np.array([max(avg_q_values[i:i+window_size]) for i in range(len(smoothed_avg_q_values))])
-
-    # Gráfico de puntuaciones
-    ax1.plot(range(len(smoothed_scores)), smoothed_scores, label='Average Score', color='blue')
-    ax1.fill_between(range(len(smoothed_scores)), 
-                     min_scores, 
-                     max_scores, 
-                     alpha=0.3, color='blue')
-    ax1.plot(range(len(scores)), scores, label='Episode Scores', color='gray', alpha=0.5)
-    ax1.set_title(f'{game_name} - Episode Scores')
-    ax1.set_xlabel('Episode')
-    ax1.set_ylabel('Score')
-    ax1.legend()
-
-    ax1.axhline(max(scores), color='red', linestyle='--', label='Max Score')
-    ax1.axhline(min(scores), color='green', linestyle='--', label='Min Score')
-
-    ax2.plot(range(len(smoothed_avg_q_values)), smoothed_avg_q_values, label='Average Q-value', color='green')
-    ax2.fill_between(range(len(smoothed_avg_q_values)), 
-                     min_q_values, 
-                     max_q_values, 
-                     alpha=0.3, color='green')
-    ax2.plot(range(len(avg_q_values)), avg_q_values, label='Episode Q-values', color='gray', alpha=0.5)
-    ax2.set_title(f'{game_name} - Average Q-values per Episode')
-    ax2.set_xlabel('Episode')
-    ax2.set_ylabel('Avg Q-value')
-    ax2.legend()
-
-    ax3.plot(range(len(smoothed_losses)), smoothed_losses, label='Smoothed Losses', color='red')
-    ax3.set_title(f'{game_name} - Loss')
-    ax3.set_xlabel('Training Step')
-    ax3.set_ylabel('Loss')
-    ax3.legend()
-
-    plt.tight_layout()
-    plt.savefig(os.path.join(LOCAL_FOLDER, f'training_progress_{game_name}_{timestamp}.png'))
-    plt.close()
 
 def save_hyperparameters(timestamp):
     hyperparameters = {
@@ -321,19 +219,6 @@ def save_hyperparameters(timestamp):
     with open(os.path.join(LOCAL_FOLDER, f'hyperparameters_{timestamp}.json'), 'w') as f:
         json.dump(hyperparameters, f, indent=4)
 
-def plot_evaluation_scores(evaluation_scores, game_name, timestamp):
-    steps, scores = zip(*evaluation_scores)
-    
-    plt.figure(figsize=(12, 6))
-    plt.plot(steps, scores, marker='o')
-    plt.title(f'{game_name} - Evaluation Scores')
-    plt.xlabel('Total Steps')
-    plt.ylabel('Evaluation Score')
-    plt.grid(True)
-    
-    plt.savefig(os.path.join(LOCAL_FOLDER, f'evaluation_scores_{game_name}_{timestamp}.png'))
-    plt.close()
-
 def main():
     timestamp = get_timestamp()
     
@@ -362,7 +247,7 @@ def main():
             break
         
         state, _ = env.reset(seed=np.random.randint(0, 100000))
-        state, stacked_frames = stack_frames(stacked_frames, state, True)
+        state, stacked_frames = utils.stack_frames(stacked_frames, state, True, FRAME_STACK)
         episode_reward = 0
         episode_steps = 0
         agent.q_values_episode = []
@@ -372,7 +257,7 @@ def main():
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
 
-            next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
+            next_state, stacked_frames = utils.stack_frames(stacked_frames, next_state, False, FRAME_STACK)
             agent.remember(state, action, reward, next_state, done)
             state = next_state
             episode_reward += reward
@@ -391,7 +276,7 @@ def main():
                 agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}.pth'))
 
             if total_steps % EVALUATION_FREQUENCY == 0:
-                eval_score, deviation = evaluate_agent(env, agent, NUM_EVALUATION_EPISODES)
+                eval_score, deviation = utils.evaluate_agent(env, agent, NUM_EVALUATION_EPISODES, FRAME_STACK)
                 evaluation_scores.append((total_steps, eval_score))
                 logging.info(f"Step: {total_steps}, Evaluation Score: {eval_score}, Desviacion: {deviation}")
 
@@ -406,13 +291,13 @@ def main():
         torch.cuda.empty_cache()
 
         if episode % 200 == 0:
-            plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp)
+            utils.plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp, LOCAL_FOLDER)
 
     try:
-        mean_reward, std_reward = evaluate_agent(env, agent, num_episodes=30)
+        mean_reward, std_reward = utils.evaluate_agent(env, agent, num_episodes=30, FRAME_STACK=FRAME_STACK)
         logging.info(f"Final Evaluation - Mean Reward: {mean_reward}, Std Reward: {std_reward}")
-        plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp)
-        plot_evaluation_scores(evaluation_scores, GAME_NAME, timestamp)  
+        utils.plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp, LOCAL_FOLDER)
+        utils.plot_evaluation_scores(evaluation_scores, GAME_NAME, timestamp)  
         agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}.pth'))
     except Exception as e:
         logging.error(f"Error al guardar el modelo o la memoria de experiencia: {e}")
@@ -421,13 +306,13 @@ def main():
     env = RecordVideo(env, os.path.join(VIDEOS_FOLDER, f'video_{timestamp}'))
     state, _ = env.reset(seed=np.random.randint(0, 100000))
     stacked_frames = deque(maxlen=FRAME_STACK)
-    state, stacked_frames = stack_frames(stacked_frames, state, True)
+    state, stacked_frames = utils.stack_frames(stacked_frames, state, True, FRAME_STACK)
     done = False
     while not done:
         action = agent.select_action(state, env)
         next_state, reward, terminated, truncated, _ = env.step(action)
         done = terminated or truncated
-        next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
+        next_state, stacked_frames = utils.stack_frames(stacked_frames, next_state, False, FRAME_STACK)
         state = next_state
 
 if __name__ == "__main__":
