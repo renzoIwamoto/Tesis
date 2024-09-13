@@ -362,9 +362,6 @@ def main():
     except Exception as e:
         logging.error(f"Error al guardar el modelo o la memoria de experiencia: {e}")
 
-    
-
-
     env = gym.make(ENV_NAME, render_mode="rgb_array")
     env = RecordVideo(env, os.path.join(VIDEOS_FOLDER, f'video_{timestamp}'))
     state, _ = env.reset(seed=np.random.randint(0, 100000))

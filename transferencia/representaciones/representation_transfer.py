@@ -13,7 +13,7 @@ import logging
 from gymnasium.wrappers import RecordVideo
 import json
 import argparse
-import utils.utils as utils
+from utils import utils
 
 def get_args():
     parser = argparse.ArgumentParser(description='Transferencia de aprendizaje en DQN')
