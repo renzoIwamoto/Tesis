@@ -22,7 +22,7 @@ def stack_frames(stacked_frames, frame, is_new_episode, FRAME_STACK):
 def evaluate_agent(env, agent, num_episodes, FRAME_STACK):
     total_rewards = []
     original_epsilon = agent.epsilon
-    agent.epsilon = 0.00  # Establecer epsilon a 0 para la evaluación
+    agent.epsilon = 0.05  # Establecer epsilon a 0 para la evaluación
     
     for _ in range(num_episodes):
         state, _ = env.reset(seed=np.random.randint(0, 100000))

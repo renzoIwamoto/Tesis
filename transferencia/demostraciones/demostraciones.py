@@ -304,8 +304,10 @@ def main():
             trained_agent.save(model_save_path)
 
     # Graficar resultados
-    utils.plot_training_progress(scores, avg_q_values_per_episode, losses, game_name, timestamp, local_folder)
-    utils.plot_evaluation_scores(evaluation_scores, game_name, timestamp, local_folder)
+    mean_reward, std_reward = utils.evaluate_agent(env, trained_agent, num_episodes=30, FRAME_STACK=FRAME_STACK)
+    logging.info(f"Final Evaluation - Mean Reward: {mean_reward}, Std Reward: {std_reward}")
+    utils.plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp, local_folder)
+    utils.plot_evaluation_scores(evaluation_scores, GAME_NAME, timestamp, local_folder)
     model_save_path = os.path.join(models_folder, f'dqn_model_{game_name}_{timestamp}_step.pth')
     trained_agent.save(model_save_path)
     env.close()

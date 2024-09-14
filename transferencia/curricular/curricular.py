@@ -243,12 +243,14 @@ def main():
         scores.append(episode_reward)
         logging.info(f"Ep: {episode}, Reward: {episode_reward}, Difficulty: {DIFFICULTY}, Total Steps: {total_steps}")
 
-    # Guardar el modelo final
-    agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}_difficulty_{DIFFICULTY}.pth'))
-
     # Graficar progreso
+    mean_reward, std_reward = utils.evaluate_agent(env, agent, num_episodes=30, FRAME_STACK=FRAME_STACK)
+    logging.info(f"Final Evaluation - Mean Reward: {mean_reward}, Std Reward: {std_reward}")
     utils.plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp, LOCAL_FOLDER)
     utils.plot_evaluation_scores(evaluation_scores, GAME_NAME, timestamp, LOCAL_FOLDER)
+    
+    # Guardar el modelo final
+    agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}_difficulty_{DIFFICULTY}.pth'))
 
     logging.info(f"Entrenamiento finalizado en dificultad {DIFFICULTY}")
     env.close()
