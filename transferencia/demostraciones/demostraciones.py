@@ -11,7 +11,7 @@ import datetime
 import logging
 import argparse
 import json
-import utils.utils as utils
+import utils
 
 ### probar los steps de exploracion
 
