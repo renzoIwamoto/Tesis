@@ -142,10 +142,21 @@ class TransferDQNAgent:
             logging.error(f"Ruta del modelo inválida o el archivo no existe: {model_path}")
             return
         try:
-            self.q_network.load_state_dict(torch.load(model_path, map_location=self.device))
+            # Cargar el estado del modelo preentrenado
+            pretrained_dict = torch.load(model_path, map_location=self.device)
+            model_dict = self.q_network.state_dict()
+
+            # Filtrar las capas que no coincidan en tamaño (como la última capa densa)
+            pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict and v.size() == model_dict[k].size()}
+
+            # Actualizar el estado del modelo con los pesos coincidentes
+            model_dict.update(pretrained_dict)
+            self.q_network.load_state_dict(model_dict)
+
             logging.info(f'Modelo preentrenado cargado desde {model_path}')
         except Exception as e:
             logging.error(f'Error al cargar el modelo preentrenado: {e}')
+
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
