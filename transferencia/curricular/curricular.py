@@ -94,6 +94,12 @@ class DQNAgent:
         )
         return model
 
+    def freeze_conv_layers(self):
+        for name, param in self.q_network.named_parameters():
+            if 'conv' in name:  # Si es una capa convolucional
+                param.requires_grad = False
+        logging.info("Capas convolucionales congeladas.")
+
     def update_target_model(self):
         self.target_q_network.load_state_dict(self.q_network.state_dict())
 
@@ -141,6 +147,7 @@ class DQNAgent:
         try:
             self.q_network.load_state_dict(torch.load(model_path, map_location=self.device))
             logging.info(f'Modelo preentrenado cargado desde {model_path}')
+            self.freeze_conv_layers()  # Congelar las capas convolucionales después de cargar el modelo preentrenado
         except Exception as e:
             logging.error(f'Error al cargar el modelo preentrenado: {e}')
 
