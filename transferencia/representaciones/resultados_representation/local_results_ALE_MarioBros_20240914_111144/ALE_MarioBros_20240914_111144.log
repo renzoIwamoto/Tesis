@@ -1,0 +1,6 @@
+2024-09-14 11:11:45,163 - ERROR - Error al cargar el modelo preentrenado: Error(s) in loading state_dict for Sequential:
+	size mismatch for 9.weight: copying a param with shape torch.Size([4, 512]) from checkpoint, the shape in current model is torch.Size([18, 512]).
+	size mismatch for 9.bias: copying a param with shape torch.Size([4]) from checkpoint, the shape in current model is torch.Size([18]).
+2024-09-14 11:11:46,155 - INFO - Ep.: 0, Score: 0.0, e: 1.00, Steps: 694, Avg Q-val: nan, replay: 694, Mem Usage: 28.4%
+2024-09-14 11:11:46,711 - INFO - Ep.: 1, Score: 0.0, e: 1.00, Steps: 326, Avg Q-val: nan, replay: 1020, Mem Usage: 28.5%
+2024-09-14 11:11:47,401 - INFO - Ep.: 2, Score: 0.0, e: 1.00, Steps: 971, Avg Q-val: nan, replay: 1991, Mem Usage: 28.7%
