@@ -99,15 +99,18 @@ def evaluate_agent(env, agent, num_episodes):
         stacked_frames = deque(maxlen=FRAME_STACK)
         state, stacked_frames = stack_frames(stacked_frames, state, True)
         done = False
-        episode_reward = 0.00
+        episode_reward = 0.0
+        
+        action = env.action_space.sample()
+        #next_state, reward, terminated, truncated, _ = env.step(action)
 
         while not done:
-            action = agent.select_action(state, env)
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
             next_state, stacked_frames = stack_frames(stacked_frames, next_state, False)
             state = next_state
             episode_reward += reward
+            action = agent.select_action(state, env)
 
         total_rewards.append(episode_reward)
         logging.info(f'Episodio {episode + 1}/{num_episodes} - Recompensa: {episode_reward}')
