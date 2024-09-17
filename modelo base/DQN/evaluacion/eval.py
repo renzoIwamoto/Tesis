@@ -7,6 +7,7 @@ import argparse
 import logging
 from collections import deque
 import cv2
+import time
 
 def get_args():
     parser = argparse.ArgumentParser(description='Evaluación de un modelo DQN preentrenado')
@@ -94,11 +95,11 @@ def evaluate_agent(env, agent, num_episodes):
     original_epsilon = agent.epsilon
     agent.epsilon = 0.00  # Establecer epsilon a 0 para la evaluación
     for episode in range(num_episodes):
-        state, _ = env.reset(seed=np.random.randint(0, 100000))
+        state, _ = env.reset(seed=int(time.time()))
         stacked_frames = deque(maxlen=FRAME_STACK)
         state, stacked_frames = stack_frames(stacked_frames, state, True)
         done = False
-        episode_reward = 0
+        episode_reward = 0.00
 
         while not done:
             action = agent.select_action(state, env)
