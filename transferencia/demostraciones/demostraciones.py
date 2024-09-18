@@ -179,7 +179,7 @@ def main():
     # Configuración de rutas
     timestamp = get_timestamp()
     game_name = args.env_name.replace('/', '_')
-    base_folder = '/home/riwamoto_data/riwamoto/demostraciones'
+    base_folder = os.path.expanduser('~/riwamoto_data/riwamoto/demostraciones')
 
     SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # Directorio del script actual (DQN)
     RESULTADOS_FOLDER = os.path.join(SCRIPT_DIR, 'resultados')
