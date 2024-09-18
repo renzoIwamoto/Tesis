@@ -12,6 +12,7 @@ import logging
 import argparse
 import json
 import utils
+import psutil
 
 ### probar los steps de exploracion
 
@@ -217,6 +218,7 @@ def main():
 
     while total_steps < EXPERT_STEPS:
         episode_reward_fase_1 = 0  # Recompensa del episodio
+        steps_episode = 0  # Contador de pasos por episodio
         done = False
 
         while not done:
@@ -231,9 +233,10 @@ def main():
 
             episode_reward_fase_1 += reward
             total_steps += 1
+            steps_episode += 1
 
             # Si se han acumulado suficientes pasos, el agente empieza a entrenar
-            if  total_steps % TRAIN_FREQUENCY == 0 and len(trained_agent.loss_history) > 0:
+            if total_steps % TRAIN_FREQUENCY == 0 and len(trained_agent.loss_history) > 0:
                 trained_agent.replay()
                 trained_agent.update_epsilon(total_steps)
                 losses.append(trained_agent.loss_history[-1])
@@ -244,8 +247,16 @@ def main():
 
             # Si el episodio ha terminado, reiniciamos el entorno y hacemos la impresión
             if done:
+                avg_q_value = np.mean(pretrained_agent.q_values_episode) if pretrained_agent.q_values_episode else 0
+                memory_info = psutil.virtual_memory()  # Obtener información de uso de memoria
+                mem_usage = memory_info.percent  # Porcentaje de uso de memoria
+                
                 scores_fase_1.append(episode_reward_fase_1)
-                logging.info(f"Fase 1 - Pasos totales: {total_steps}, Recompensa del episodio: {episode_reward_fase_1}")
+                logging.info(
+                    f"Ep.: {len(scores_fase_1)}, Score: {episode_reward_fase_1}, e: {trained_agent.epsilon:.2f}, "
+                    f"Steps: {steps_episode}, Avg Q-val: {avg_q_value:.2f}, replay: {len(trained_agent.memory)}, "
+                    f"Mem Usage: {mem_usage}%"
+                )
                 # Reiniciar el estado para el siguiente episodio
                 state, _ = env.reset(seed=np.random.randint(0, 100000))
                 state, stacked_frames = utils.stack_frames(stacked_frames, state, True, FRAME_STACK)
@@ -263,6 +274,7 @@ def main():
         state, _ = env.reset(seed=np.random.randint(0, 100000))
         state, stacked_frames = utils.stack_frames(stacked_frames, state, True, FRAME_STACK)
         episode_reward = 0
+        steps_episode = 0  # Contador de pasos por episodio
         done = False
 
         for step in range(MAX_STEPS_EPISODE):
@@ -274,6 +286,7 @@ def main():
             state = next_state
             episode_reward += reward
             total_steps += 1
+            steps_episode += 1
 
             if total_steps >= TRAINING_START and total_steps % TRAIN_FREQUENCY == 0:
                 trained_agent.replay()
@@ -290,11 +303,14 @@ def main():
         avg_q_value = np.mean(trained_agent.q_values_episode) if trained_agent.q_values_episode else 0
         avg_q_values_per_episode.append(avg_q_value)
 
+        # Obtener uso de memoria y loggear la información
+        memory_info = psutil.virtual_memory()  # Obtener información de uso de memoria
+        mem_usage = memory_info.percent  # Porcentaje de uso de memoria
+
         # Imprimir el progreso en los logs
-        logging.info(f"Fase 2 - Episodio {episode + 1}/{EPISODES}, "
-                    f"Recompensa: {episode_reward}, "
-                    f"Pasos Totales: {total_steps}, "
-                    f"Valor Q Promedio: {avg_q_value}")
+        logging.info(f"Ep.: {episode + 1}, Score: {episode_reward}, e: {trained_agent.epsilon:.2f}, "
+                    f"Steps: {steps_episode}, Avg Q-val: {avg_q_value:.2f}, replay: {len(trained_agent.memory)}, "
+                    f"Mem Usage: {mem_usage}%")
 
         scores.append(episode_reward)
 
