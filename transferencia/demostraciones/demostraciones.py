@@ -246,7 +246,7 @@ def main():
             steps_episode += 1
 
             # Si se han acumulado suficientes pasos, el agente empieza a entrenar
-            if total_steps % TRAIN_FREQUENCY == 0:
+            if total_steps % TRAIN_FREQUENCY == 0 and total_steps >= TRAINING_START :
                 trained_agent.replay()
                 trained_agent.update_epsilon(total_steps)
                 losses.append(trained_agent.loss_history[-1])
