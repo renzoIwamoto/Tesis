@@ -36,7 +36,7 @@ GAMMA = 0.99
 LEARNING_RATE = 0.00025
 MEMORY_SIZE = 100000
 BATCH_SIZE = 256
-TRAINING_START = 100000
+TRAINING_START = 10000
 INITIAL_EPSILON = 0.05
 FINAL_EPSILON = 0.05
 EXPLORATION_STEPS = 1000000
@@ -51,7 +51,7 @@ MAX_STEPS_EPISODE = 50000
 NEGATIVE_REWARD = 0
 DIFFICULTY = 0
 DEVICE_ID = args.device
-EXPERT_STEPS = 1000000  # Pasos para generar experiencias con el modelo experto
+EXPERT_STEPS = 2500000  # Pasos para generar experiencias con el modelo experto
 
 
 # Configuración de rutas
@@ -101,7 +101,8 @@ def save_hyperparameters(timestamp, local_folder):
         'TOTAL_STEPS_LIMIT': TOTAL_STEPS_LIMIT,
         'TRAIN_FREQUENCY': TRAIN_FREQUENCY,
         'MAX_STEPS_EPISODE': MAX_STEPS_EPISODE,
-        'NEGATIVE_REWARD': NEGATIVE_REWARD
+        'NEGATIVE_REWARD': NEGATIVE_REWARD,
+        'EXPERT_STEPS': EXPERT_STEPS
     }
 
     with open(os.path.join(local_folder, f'hyperparameters_{timestamp}.json'), 'w') as f:
@@ -245,7 +246,7 @@ def main():
             steps_episode += 1
 
             # Si se han acumulado suficientes pasos, el agente empieza a entrenar
-            if total_steps % TRAIN_FREQUENCY == 0 and len(trained_agent.loss_history) > 0:
+            if total_steps % TRAIN_FREQUENCY == 0:
                 trained_agent.replay()
                 trained_agent.update_epsilon(total_steps)
                 losses.append(trained_agent.loss_history[-1])
