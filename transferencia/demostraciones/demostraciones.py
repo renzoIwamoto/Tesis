@@ -72,10 +72,10 @@ log_filepath = os.path.join(local_folder, log_filename)
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levellevel_name)s - %(message)s',
+                    format='%(asctime)s - %(levelname)s - %(message)s',
                     handlers=[
-                        logging.FileHandler(log_filepath),  # Guardar en archivo
-                        logging.StreamHandler()  # Mostrar en consola
+                        logging.FileHandler(log_filepath),
+                        logging.StreamHandler()
                     ])
 
 # Guardar hiperparámetros
