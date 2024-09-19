@@ -14,11 +14,6 @@ import json
 import utils
 import psutil
 
-### probar los steps de exploracion
-
-# Configuración de logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -57,6 +52,33 @@ NEGATIVE_REWARD = 0
 DIFFICULTY = 0
 DEVICE_ID = args.device
 EXPERT_STEPS = 1000000  # Pasos para generar experiencias con el modelo experto
+
+
+# Configuración de rutas
+timestamp = get_timestamp()
+game_name = args.env_name.replace('/', '_')
+base_folder = os.path.expanduser('~/riwamoto_data/demostraciones')
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # Directorio del script actual (DQN)
+RESULTADOS_FOLDER = os.path.join(SCRIPT_DIR, 'resultados')
+local_folder = os.path.join(RESULTADOS_FOLDER, f'local_results_{GAME_NAME}_{get_timestamp()}')
+os.makedirs(local_folder, exist_ok=True)  # Crear la carpeta si no existe
+models_folder = os.path.join(base_folder, 'models')
+os.makedirs(models_folder, exist_ok=True)
+videos_folder = os.path.join(local_folder, 'videos')
+os.makedirs(videos_folder, exist_ok=True)
+
+# Definir el nombre y la ruta del archivo de logs
+log_filename = f"{GAME_NAME}_{get_timestamp()}.log"
+log_filepath = os.path.join(local_folder, log_filename)
+
+# Configuración de logging
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s',
+                    handlers=[
+                        logging.FileHandler(log_filepath),  # Guardar en archivo
+                        logging.StreamHandler()  # Mostrar en consola
+                    ])
 
 # Guardar hiperparámetros
 def save_hyperparameters(timestamp, local_folder):
@@ -176,20 +198,6 @@ class DQNAgent:
 # Función principal
 def main():
     args = get_args()
-
-    # Configuración de rutas
-    timestamp = get_timestamp()
-    game_name = args.env_name.replace('/', '_')
-    base_folder = os.path.expanduser('~/riwamoto_data/demostraciones')
-
-    SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # Directorio del script actual (DQN)
-    RESULTADOS_FOLDER = os.path.join(SCRIPT_DIR, 'resultados')
-    local_folder = os.path.join(RESULTADOS_FOLDER, f'local_results_{GAME_NAME}_{get_timestamp()}')
-    os.makedirs(local_folder, exist_ok=True)  # Crear la carpeta si no existe
-    models_folder = os.path.join(base_folder, 'models')
-    os.makedirs(models_folder, exist_ok=True)
-    videos_folder = os.path.join(local_folder, 'videos')
-    os.makedirs(videos_folder, exist_ok=True)
 
     save_hyperparameters(timestamp, local_folder)
 
