@@ -51,8 +51,6 @@ MAX_STEPS_EPISODE = 50000
 NEGATIVE_REWARD = 0
 DIFFICULTY = 0
 DEVICE_ID = args.device
-EXPERT_STEPS = 2500000  # Pasos para generar experiencias con el modelo experto
-
 
 # Configuración de rutas
 timestamp = get_timestamp()
@@ -74,7 +72,7 @@ log_filepath = os.path.join(local_folder, log_filename)
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s',
+                    format='%(asctime)s - %(levellevel_name)s - %(message)s',
                     handlers=[
                         logging.FileHandler(log_filepath),  # Guardar en archivo
                         logging.StreamHandler()  # Mostrar en consola
@@ -101,8 +99,7 @@ def save_hyperparameters(timestamp, local_folder):
         'TOTAL_STEPS_LIMIT': TOTAL_STEPS_LIMIT,
         'TRAIN_FREQUENCY': TRAIN_FREQUENCY,
         'MAX_STEPS_EPISODE': MAX_STEPS_EPISODE,
-        'NEGATIVE_REWARD': NEGATIVE_REWARD,
-        'EXPERT_STEPS': EXPERT_STEPS
+        'NEGATIVE_REWARD': NEGATIVE_REWARD
     }
 
     with open(os.path.join(local_folder, f'hyperparameters_{timestamp}.json'), 'w') as f:
@@ -186,7 +183,6 @@ class DQNAgent:
 
     def load_pretrained_model(self, model_path):
         try:
-            # Cambiar `weights_only=True` en `torch.load`
             self.q_network.load_state_dict(torch.load(model_path, map_location=self.device, weights_only=True))
             logging.info(f'Modelo preentrenado cargado desde {model_path}')
         except Exception as e:
@@ -207,17 +203,14 @@ def main():
     state_shape = (FRAME_STACK, 84, 84)
     action_size = env.action_space.n
 
-    # Agente para generar demostraciones (preentrenado)
+    # Agente experto (preentrenado)
     pretrained_agent = DQNAgent(state_shape, action_size, DEVICE_ID, trainable=False)
     pretrained_agent.load_pretrained_model(args.pretrained_model)
 
-    # Agente que se entrenará desde cero utilizando las demostraciones
+    # Agente entrenado
     trained_agent = DQNAgent(state_shape, action_size, DEVICE_ID, trainable=True)
-    
-    # Fase 1: Generar experiencias con el agente preentrenado
-    logging.info("Fase 1: Generando experiencias con el agente preentrenado...")
+
     total_steps = 0
-    scores_fase_1 = []
     scores = []
     avg_q_values_per_episode = []
     losses = []
@@ -226,72 +219,25 @@ def main():
     stacked_frames = deque(maxlen=FRAME_STACK)
     state, stacked_frames = utils.stack_frames(stacked_frames, state, True, FRAME_STACK)
 
-    while total_steps < EXPERT_STEPS:
-        episode_reward_fase_1 = 0  # Recompensa del episodio
-        steps_episode = 0  # Contador de pasos por episodio
-        done = False
-
-        while not done:
-            action = pretrained_agent.select_action(state, env)
-            next_state, reward, terminated, truncated, _ = env.step(action)
-            done = terminated or truncated
-            next_state, stacked_frames = utils.stack_frames(stacked_frames, next_state, False, FRAME_STACK)
-            
-            # Guardar la experiencia en el agente que se va a entrenar
-            trained_agent.remember(state, action, reward, next_state, done)
-            state = next_state if not done else env.reset()[0]  # Reinicio del entorno si el episodio ha terminado
-
-            episode_reward_fase_1 += reward
-            total_steps += 1
-            steps_episode += 1
-
-            # Si se han acumulado suficientes pasos, el agente empieza a entrenar
-            if total_steps % TRAIN_FREQUENCY == 0 and total_steps >= TRAINING_START :
-                trained_agent.replay()
-                trained_agent.update_epsilon(total_steps)
-                losses.append(trained_agent.loss_history[-1])
-
-            # Actualizar el modelo objetivo cada cierto número de pasos
-            if total_steps % UPDATE_TARGET_FREQUENCY == 0:
-                trained_agent.update_target_model()
-
-            # Si el episodio ha terminado, reiniciamos el entorno y hacemos la impresión
-            if done:
-                avg_q_value = np.mean(pretrained_agent.q_values_episode) if pretrained_agent.q_values_episode else 0
-                memory_info = psutil.virtual_memory()  # Obtener información de uso de memoria
-                mem_usage = memory_info.percent  # Porcentaje de uso de memoria
-                
-                scores_fase_1.append(episode_reward_fase_1)
-                logging.info(
-                    f"Ep.: {len(scores_fase_1)}, Score: {episode_reward_fase_1}, e: {trained_agent.epsilon:.2f}, "
-                    f"Steps: {steps_episode}, Avg Q-val: {avg_q_value:.2f}, replay: {len(trained_agent.memory)}, "
-                    f"Mem Usage: {mem_usage}%"
-                )
-                # Reiniciar el estado para el siguiente episodio
-                state, _ = env.reset(seed=np.random.randint(0, 100000))
-                state, stacked_frames = utils.stack_frames(stacked_frames, state, True, FRAME_STACK)
-
-    logging.info(f"Experiencias generadas: {len(trained_agent.memory)}")
-
-    # Fase 2: Entrenamiento del agente desde cero con las demostraciones
-    logging.info("Fase 2: Entrenando la nueva red...")
-    del pretrained_agent 
-
     for episode in range(EPISODES):
         if total_steps >= TOTAL_STEPS_LIMIT:
             break
 
-        state, _ = env.reset(seed=np.random.randint(0, 100000))
-        state, stacked_frames = utils.stack_frames(stacked_frames, state, True, FRAME_STACK)
         episode_reward = 0
-        steps_episode = 0  # Contador de pasos por episodio
+        steps_episode = 0
         done = False
 
-        for step in range(MAX_STEPS_EPISODE):
-            action = trained_agent.select_action(state, env)
+        while not done:
+            # Alternar entre el agente experto y el agente entrenado en un 50% de las acciones
+            if np.random.rand() < 0.5:
+                action = pretrained_agent.select_action(state, env)
+            else:
+                action = trained_agent.select_action(state, env)
+
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
             next_state, stacked_frames = utils.stack_frames(stacked_frames, next_state, False, FRAME_STACK)
+
             trained_agent.remember(state, action, reward, next_state, done)
             state = next_state
             episode_reward += reward
@@ -309,15 +255,12 @@ def main():
             if done:
                 break
 
-        # Calcular el valor Q promedio
         avg_q_value = np.mean(trained_agent.q_values_episode) if trained_agent.q_values_episode else 0
         avg_q_values_per_episode.append(avg_q_value)
 
-        # Obtener uso de memoria y loggear la información
-        memory_info = psutil.virtual_memory()  # Obtener información de uso de memoria
-        mem_usage = memory_info.percent  # Porcentaje de uso de memoria
-
-        # Imprimir el progreso en los logs
+        # Logear el progreso
+        memory_info = psutil.virtual_memory()
+        mem_usage = memory_info.percent
         logging.info(f"Ep.: {episode + 1}, Score: {episode_reward}, e: {trained_agent.epsilon:.2f}, "
                     f"Steps: {steps_episode}, Avg Q-val: {avg_q_value:.2f}, replay: {len(trained_agent.memory)}, "
                     f"Mem Usage: {mem_usage}%")
@@ -329,7 +272,7 @@ def main():
             model_save_path = os.path.join(models_folder, f'dqn_model_{game_name}.pth')
             trained_agent.save(model_save_path)
 
-    # Graficar resultados
+    # Graficar y evaluar
     mean_reward, std_reward = utils.evaluate_agent(env, trained_agent, num_episodes=30, FRAME_STACK=FRAME_STACK)
     logging.info(f"Final Evaluation - Mean Reward: {mean_reward}, Std Reward: {std_reward}")
     utils.plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp, local_folder)
