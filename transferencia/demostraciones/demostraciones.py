@@ -183,7 +183,7 @@ class DQNAgent:
 
     def load_pretrained_model(self, model_path):
         try:
-            self.q_network.load_state_dict(torch.load(model_path, map_location=self.device, weights_only=True))
+            self.q_network.load_state_dict(torch.load(model_path, map_location=self.device))
             logging.info(f'Modelo preentrenado cargado desde {model_path}')
         except Exception as e:
             logging.error(f'Error al cargar el modelo preentrenado: {e}')
@@ -215,14 +215,14 @@ def main():
     avg_q_values_per_episode = []
     losses = []
     evaluation_scores = []
-    state, _ = env.reset(seed=np.random.randint(0, 100000))
     stacked_frames = deque(maxlen=FRAME_STACK)
-    state, stacked_frames = utils.stack_frames(stacked_frames, state, True, FRAME_STACK)
-
+    
     for episode in range(EPISODES):
         if total_steps >= TOTAL_STEPS_LIMIT:
             break
 
+        state, _ = env.reset(seed=np.random.randint(0, 100000))
+        state, stacked_frames = utils.stack_frames(stacked_frames, state, True, FRAME_STACK)
         episode_reward = 0
         steps_episode = 0
         done = False
