@@ -163,7 +163,8 @@ class DQNAgent:
 
     def load_pretrained_model(self, model_path):
         try:
-            self.q_network.load_state_dict(torch.load(model_path, map_location=self.device))
+            # Cambiar `weights_only=True` en `torch.load`
+            self.q_network.load_state_dict(torch.load(model_path, map_location=self.device, weights_only=True))
             logging.info(f'Modelo preentrenado cargado desde {model_path}')
         except Exception as e:
             logging.error(f'Error al cargar el modelo preentrenado: {e}')
@@ -179,7 +180,7 @@ def main():
     # Configuración de rutas
     timestamp = get_timestamp()
     game_name = args.env_name.replace('/', '_')
-    base_folder = os.path.expanduser('~/riwamoto_data/riwamoto/demostraciones')
+    base_folder = os.path.expanduser('~/riwamoto_data/demostraciones')
 
     SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # Directorio del script actual (DQN)
     RESULTADOS_FOLDER = os.path.join(SCRIPT_DIR, 'resultados')
