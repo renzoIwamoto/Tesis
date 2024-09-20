@@ -1,0 +1,19 @@
+2024-09-19 10:41:47,022 - INFO - Modelo preentrenado cargado desde /home/riwamoto/riwamoto_data/ALE_MarioBros_results/models/dqn_model_ALE_MarioBros_final_20240831_094717.pth
+2024-09-19 10:41:47,033 - INFO - Fase 1: Generando experiencias con el agente preentrenado...
+2024-09-19 10:41:47,635 - INFO - Ep.: 1, Score: 4000.0, e: 0.05, Steps: 710, Avg Q-val: 742.12, replay: 710, Mem Usage: 6.0%
+2024-09-19 10:41:48,058 - INFO - Ep.: 2, Score: 2400.0, e: 0.05, Steps: 554, Avg Q-val: 790.53, replay: 1264, Mem Usage: 6.2%
+2024-09-19 10:41:48,730 - INFO - Ep.: 3, Score: 4000.0, e: 0.05, Steps: 950, Avg Q-val: 733.10, replay: 2214, Mem Usage: 6.5%
+2024-09-19 10:41:49,150 - INFO - Ep.: 4, Score: 1600.0, e: 0.05, Steps: 552, Avg Q-val: 770.72, replay: 2766, Mem Usage: 6.7%
+2024-09-19 10:41:49,811 - INFO - Ep.: 5, Score: 9600.0, e: 0.05, Steps: 934, Avg Q-val: 797.81, replay: 3700, Mem Usage: 7.0%
+2024-09-19 10:41:50,550 - INFO - Ep.: 6, Score: 5600.0, e: 0.05, Steps: 1065, Avg Q-val: 804.20, replay: 4765, Mem Usage: 7.4%
+2024-09-19 10:41:51,517 - INFO - Ep.: 7, Score: 4800.0, e: 0.05, Steps: 1425, Avg Q-val: 739.33, replay: 6190, Mem Usage: 7.8%
+2024-09-19 10:41:52,633 - INFO - Ep.: 8, Score: 7200.0, e: 0.05, Steps: 1654, Avg Q-val: 725.71, replay: 7844, Mem Usage: 8.4%
+2024-09-19 10:41:53,495 - INFO - Ep.: 9, Score: 8000.0, e: 0.05, Steps: 1247, Avg Q-val: 722.16, replay: 9091, Mem Usage: 8.8%
+2024-09-19 10:41:55,158 - INFO - Ep.: 10, Score: 4000.0, e: 0.05, Steps: 1170, Avg Q-val: 702.88, replay: 10261, Mem Usage: 10.7%
+2024-09-19 10:42:01,333 - INFO - Ep.: 11, Score: 8000.0, e: 0.05, Steps: 1813, Avg Q-val: 694.54, replay: 12074, Mem Usage: 11.3%
+2024-09-19 10:42:06,555 - INFO - Ep.: 12, Score: 8800.0, e: 0.05, Steps: 1564, Avg Q-val: 694.61, replay: 13638, Mem Usage: 11.7%
+2024-09-19 10:42:10,201 - INFO - Ep.: 13, Score: 4800.0, e: 0.05, Steps: 1058, Avg Q-val: 687.21, replay: 14696, Mem Usage: 17.7%
+2024-09-19 10:42:12,841 - INFO - Ep.: 14, Score: 3200.0, e: 0.05, Steps: 743, Avg Q-val: 688.29, replay: 15439, Mem Usage: 22.7%
+2024-09-19 10:42:14,077 - INFO - Ep.: 15, Score: 3200.0, e: 0.05, Steps: 327, Avg Q-val: 697.76, replay: 15766, Mem Usage: 24.2%
+2024-09-19 10:42:18,886 - INFO - Ep.: 16, Score: 7200.0, e: 0.05, Steps: 1362, Avg Q-val: 699.53, replay: 17128, Mem Usage: 31.3%
+2024-09-19 10:42:22,252 - INFO - Ep.: 17, Score: 9600.0, e: 0.05, Steps: 949, Avg Q-val: 711.55, replay: 18077, Mem Usage: 36.4%
