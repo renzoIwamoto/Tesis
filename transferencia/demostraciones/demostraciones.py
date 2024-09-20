@@ -226,7 +226,7 @@ def main():
         episode_reward = 0
         steps_episode = 0
         done = False
-
+        trained_agent.q_values_episode = []
         while not done:
             # Alternar entre el agente experto y el agente entrenado en un 50% de las acciones
             if np.random.rand() < 0.5:
@@ -270,6 +270,7 @@ def main():
         # Guardar el modelo periódicamente
         if total_steps % SAVE_FREQUENCY == 0:
             model_save_path = os.path.join(models_folder, f'dqn_model_{game_name}.pth')
+            utils.plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp, local_folder)
             trained_agent.save(model_save_path)
 
     # Graficar y evaluar
