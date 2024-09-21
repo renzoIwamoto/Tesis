@@ -1,0 +1,29 @@
+{
+    "ENV_NAME": "ALE/Alien-v5",
+    "FRAME_STACK": 4,
+    "GAMMA": 0.99,
+    "LEARNING_RATE": 0.00025,
+    "MEMORY_SIZE": 100000,
+    "BATCH_SIZE": 256,
+    "TRAINING_START": 100000,
+    "INITIAL_EPSILON": 1,
+    "FINAL_EPSILON": 0.05,
+    "EXPLORATION_STEPS": 1000000,
+    "UPDATE_TARGET_FREQUENCY": 1000,
+    "SAVE_FREQUENCY": 1000000,
+    "EVALUATION_FREQUENCY": 500000,
+    "NUM_EVALUATION_EPISODES": 5,
+    "EPISODES": 100000,
+    "TOTAL_STEPS_LIMIT": 5000000,
+    "TRAIN_FREQUENCY": 16,
+    "MAX_STEPS_EPISODE": 50000,
+    "NEGATIVE_REWARD": 0,
+    "ARGS": {
+        "env_name": "ALE/Alien-v5",
+        "device": 1,
+        "base_model_game": "MarioBros",
+        "base_model_path": "/data/riwamoto/ALE_MarioBros_results/models/dqn_model_ALE_MarioBros_final_20240831_094717.pth",
+        "freeze_conv_layers": true
+    },
+    "OBSERVACION": ""
+}
