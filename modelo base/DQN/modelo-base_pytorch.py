@@ -107,17 +107,19 @@ class DQNAgent:
         self.q_values_history = []
         self.q_values_episode = []
 
+# se puede probar batch normalization cada dos convolucionales y en la primera densa
     def build_model(self):
         model = nn.Sequential(
             nn.Conv2d(FRAME_STACK, 32, kernel_size=8, stride=4, padding=0),
             nn.ReLU(),
             nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
             nn.ReLU(),
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=0),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=0), # probar descongelar la última convolucional
             nn.ReLU(),
             nn.Flatten(),
             nn.Linear(7 * 7 * 64, 512),
             nn.ReLU(),
+            # agregar una capa densa extra de 128
             nn.Linear(512, self.action_size)
         )
         return model
