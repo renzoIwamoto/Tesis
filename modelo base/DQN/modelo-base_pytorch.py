@@ -50,7 +50,7 @@ MAX_STEPS_EPISODE = 50000
 NEGATIVE_REWARD = 0  # Nuevo parámetro para el reward negativo
 MIN_REWARD = float('inf')
 MAX_REWARD = float('-inf')
-DIFFICULTY = 0
+DIFFICULTY = 3
 DEVICE=args.device
 
 print(ENV_NAME)
@@ -108,6 +108,8 @@ class DQNAgent:
         self.q_values_episode = []
 
 # se puede probar batch normalization cada dos convolucionales y en la primera densa
+# pruebas de sensibilidad: permitir ajuste de pesos cada cierta cantidad de épocas
+# probar usar dropout
     def build_model(self):
         model = nn.Sequential(
             nn.Conv2d(FRAME_STACK, 32, kernel_size=8, stride=4, padding=0),
