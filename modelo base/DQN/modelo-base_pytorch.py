@@ -13,7 +13,7 @@ import logging
 from gymnasium.wrappers import RecordVideo
 import json
 import argparse
-import utils.utils as utils
+import  utils
 
 ### promediar entre 10 y 20 últimos episodios (agregar el valor máximo y mínimo) (desviación estándar con barras)
 ### 3 corridas por cada juego
