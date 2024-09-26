@@ -263,7 +263,7 @@ def main():
         scores.append(episode_reward)
 
         memory_info = psutil.virtual_memory()
-        logging.info(f"Ep.: {episode}, Score: {episode_reward}, Steps: {step}, Avg Q-val: {avg_q_value:.2f}, Mem Usage: {memory_info.percent}%")
+        logging.info(f"Ep.: {episode}, Score: {episode_reward}, Steps: {step}, Avg Q-val: {avg_q_value:.2f}, Mem Usage: {memory_info.percent}%, tot_steps: {total_steps}")
 
     # Evaluación final del modelo
     try:
