@@ -11,16 +11,15 @@ import datetime
 import logging
 import argparse
 import json
+import psutil
 import utils
+from gymnasium.wrappers import RecordVideo  # Para grabar videos
 
-### congelar las capas convolucionales
-
-# Configuración de logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
+# Función para obtener el timestamp
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
+# Obtener los argumentos del script
 def get_args():
     parser = argparse.ArgumentParser(description='Entrenamiento de DQN con Aprendizaje Curricular')
     parser.add_argument('--env_name', type=str, default='ALE/Frogger-v5', help='Nombre del entorno de Gym')
@@ -29,6 +28,7 @@ def get_args():
     parser.add_argument('--pretrained_model', type=str, help='Ruta al modelo base preentrenado')
     return parser.parse_args()
 
+# Argumentos
 args = get_args()
 
 # Configuración del entorno y parámetros
@@ -58,6 +58,28 @@ DIFFICULTY = args.difficulty
 DEVICE = args.device
 
 print(f"Entrenamiento en {ENV_NAME} con dificultad {DIFFICULTY}")
+
+# Configuración de carpetas para resultados y logging
+timestamp = get_timestamp()
+BASE_FOLDER = '/data/riwamoto/curricular'
+CURRENT_DIR = os.getcwd()
+GAME_FOLDER = os.path.join(CURRENT_DIR, f'{GAME_NAME}_results')
+LOCAL_FOLDER = os.path.join(GAME_FOLDER, f'local_results_{GAME_NAME}_{timestamp}')
+MODELS_FOLDER = os.path.join(BASE_FOLDER, 'models')
+VIDEOS_FOLDER = os.path.join(LOCAL_FOLDER, 'videos')
+os.makedirs(MODELS_FOLDER, exist_ok=True)
+os.makedirs(LOCAL_FOLDER, exist_ok=True)
+os.makedirs(VIDEOS_FOLDER, exist_ok=True)
+
+# Configuración de logging (archivo + consola)
+log_filename = f"{GAME_NAME}_training_{timestamp}.log"
+log_filepath = os.path.join(LOCAL_FOLDER, log_filename)
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s',
+                    handlers=[
+                        logging.FileHandler(log_filepath),
+                        logging.StreamHandler()
+                    ])
 
 # Guardar hiperparámetros
 def save_hyperparameters(hyperparameters, timestamp, local_folder):
@@ -155,19 +177,7 @@ class DQNAgent:
 def main():
     timestamp = get_timestamp()
 
-    # Definir las carpetas para guardar los modelos y resultados
-    BASE_FOLDER = '/data/riwamoto/curricular'  # Para guardar los modelos
-    CURRENT_DIR = os.getcwd()  # Carpeta actual
-    GAME_FOLDER = os.path.join(CURRENT_DIR, f'{GAME_NAME}_results')  # Carpeta para guardar resultados locales
-    LOCAL_FOLDER = os.path.join(GAME_FOLDER, f'local_results_{GAME_NAME}_{timestamp}')
-    MODELS_FOLDER = os.path.join(BASE_FOLDER, 'models')  # Carpeta para guardar los modelos en /data/riwamoto
-    VIDEOS_FOLDER = os.path.join(LOCAL_FOLDER, 'videos')
-
-    # Crear las carpetas necesarias
-    os.makedirs(MODELS_FOLDER, exist_ok=True)
-    os.makedirs(LOCAL_FOLDER, exist_ok=True)
-
-    # Guardar los hiperparámetros
+    # Guardar hiperparámetros
     hyperparameters = {
         'ENV_NAME': ENV_NAME,
         'FRAME_STACK': FRAME_STACK,
@@ -190,7 +200,6 @@ def main():
         'NEGATIVE_REWARD': NEGATIVE_REWARD,
         'DIFFICULTY': DIFFICULTY
     }
-
     save_hyperparameters(hyperparameters, timestamp, LOCAL_FOLDER)
 
     # Crear el entorno en la dificultad especificada
@@ -210,7 +219,7 @@ def main():
     losses = []
     evaluation_scores = []
 
-    # Entrenamiento en la dificultad especificada
+    # Entrenamiento
     logging.info(f"Entrenando en dificultad {DIFFICULTY}")
     for episode in range(EPISODES):
         if total_steps >= TOTAL_STEPS_LIMIT:
@@ -228,32 +237,58 @@ def main():
             state = next_state
             episode_reward += reward
             total_steps += 1
+
             if total_steps >= TRAINING_START and total_steps % TRAIN_FREQUENCY == 0:
                 agent.replay()
                 agent.update_epsilon(total_steps)
                 losses.append(agent.loss_history[-1])
+
             if total_steps % UPDATE_TARGET_FREQUENCY == 0:
                 agent.update_target_model()
+
             if total_steps % SAVE_FREQUENCY == 0:
                 agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_difficulty_{DIFFICULTY}.pth'))
+
+            # Evaluación durante el entrenamiento
+            if total_steps % EVALUATION_FREQUENCY == 0:
+                mean_reward, std_reward = utils.evaluate_agent(env, agent, NUM_EVALUATION_EPISODES, FRAME_STACK)
+                evaluation_scores.append((total_steps, mean_reward))
+                logging.info(f"Step: {total_steps}, Evaluation Score: {mean_reward}, Std Dev: {std_reward}")
+
             if done:
                 break
+
         avg_q_value = np.mean(agent.q_values_episode)
         avg_q_values_per_episode.append(avg_q_value)
         scores.append(episode_reward)
-        logging.info(f"Ep: {episode}, Reward: {episode_reward}, Difficulty: {DIFFICULTY}, Total Steps: {total_steps}")
 
-    # Graficar progreso
-    mean_reward, std_reward = utils.evaluate_agent(env, agent, num_episodes=30, FRAME_STACK=FRAME_STACK)
-    logging.info(f"Final Evaluation - Mean Reward: {mean_reward}, Std Reward: {std_reward}")
-    utils.plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp, LOCAL_FOLDER)
-    utils.plot_evaluation_scores(evaluation_scores, GAME_NAME, timestamp, LOCAL_FOLDER)
-    
-    # Guardar el modelo final
-    agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}_difficulty_{DIFFICULTY}.pth'))
+        memory_info = psutil.virtual_memory()
+        logging.info(f"Ep.: {episode}, Score: {episode_reward}, Steps: {step}, Avg Q-val: {avg_q_value:.2f}, Mem Usage: {memory_info.percent}%")
 
-    logging.info(f"Entrenamiento finalizado en dificultad {DIFFICULTY}")
+    # Evaluación final del modelo
+    try:
+        mean_reward, std_reward = utils.evaluate_agent(env, agent, num_episodes=30, frame_stack=FRAME_STACK)
+        logging.info(f"Final Evaluation - Mean Reward: {mean_reward}, Std Reward: {std_reward}")
+        agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}_difficulty_{DIFFICULTY}.pth'))
+    except Exception as e:
+        logging.error(f"Error durante la evaluación final: {e}")
+
+    # Grabación del mejor video
+    env = gym.make(ENV_NAME, render_mode="rgb_array")
+    env = RecordVideo(env, os.path.join(VIDEOS_FOLDER, f'video_{timestamp}'))
+    state, _ = env.reset(seed=np.random.randint(0, 100000))
+    stacked_frames = deque(maxlen=FRAME_STACK)
+    state, stacked_frames = utils.stack_frames(stacked_frames, state, True, FRAME_STACK)
+    done = False
+    while not done:
+        action = agent.select_action(state, env)
+        next_state, reward, terminated, truncated, _ = env.step(action)
+        done = terminated or truncated
+        next_state, stacked_frames = utils.stack_frames(stacked_frames, next_state, False, FRAME_STACK)
+        state = next_state
+
     env.close()
+    logging.info(f"Entrenamiento finalizado en dificultad {DIFFICULTY}")
 
 if __name__ == "__main__":
     main()
