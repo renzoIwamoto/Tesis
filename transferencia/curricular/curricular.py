@@ -228,6 +228,7 @@ def main():
         stacked_frames = deque(maxlen=FRAME_STACK)
         state, stacked_frames = utils.stack_frames(stacked_frames, state, True, FRAME_STACK)
         episode_reward = 0
+        agent.q_values_episode = []
         for step in range(MAX_STEPS_EPISODE):
             action = agent.select_action(state, env)
             next_state, reward, terminated, truncated, _ = env.step(action)
