@@ -50,7 +50,7 @@ MAX_STEPS_EPISODE = 50000
 NEGATIVE_REWARD = 0  # Nuevo parámetro para el reward negativo
 MIN_REWARD = float('inf')
 MAX_REWARD = float('-inf')
-DIFFICULTY = 3
+DIFFICULTY = 1
 DEVICE=args.device
 
 print(ENV_NAME)
