@@ -270,8 +270,8 @@ def main():
     # Evaluación final del modelo
     try:
         utils.plot_training_progress(scores, avg_q_values_per_episode, losses, GAME_NAME, timestamp, LOCAL_FOLDER)
-        mean_reward, std_reward = utils.evaluate_agent(env, agent, num_episodes=30, frame_stack=FRAME_STACK)
-        logging.info(f"Final Evaluation - Mean Reward: {mean_reward}, Std Reward: {std_reward}")
+        #mean_reward, std_reward = utils.evaluate_agent(env, agent, num_episodes=30, frame_stack=FRAME_STACK)
+        #logging.info(f"Final Evaluation - Mean Reward: {mean_reward}, Std Reward: {std_reward}")
         agent.save(os.path.join(MODELS_FOLDER, f'dqn_model_{GAME_NAME}_final_{timestamp}_difficulty_{DIFFICULTY}.pth'))
         utils.plot_evaluation_scores(evaluation_scores, GAME_NAME, timestamp, LOCAL_FOLDER)  
 
