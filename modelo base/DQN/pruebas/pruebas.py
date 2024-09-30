@@ -19,6 +19,7 @@ def test_ale_lives(games):
         try:
             env = gym.make(game)
             env.reset()
+
             lives = env.ale.lives()
             print(f"Game: {game}, Initial lives: {lives}")
             done = False
@@ -44,7 +45,7 @@ def preprocess_frame(frame):
     plt.figure(figsize=(10, 5))
     plt.subplot(1, 2, 1)
     plt.imshow(frame)
-    plt.title("Original Frame")
+    plt.title("Cuadro de imagen original")
     plt.axis('off')
     
     # Convertir a escala de grises
@@ -54,11 +55,11 @@ def preprocess_frame(frame):
     # Mostrar el frame procesado
     plt.subplot(1, 2, 2)
     plt.imshow(resized, cmap='gray')
-    plt.title("Processed Frame")
+    plt.title("Cuadro de imagen procesado")
     plt.axis('off')
     plt.show()
     
-    # Normalizar
+    # Normalizare
     return resized / 255.0
 
 # Crear el entorno de BreakoutDeterministic-v4

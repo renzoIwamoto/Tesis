@@ -169,7 +169,7 @@ class DQNAgent:
         try:
             self.q_network.load_state_dict(torch.load(model_path, map_location=self.device))
             logging.info(f'Modelo preentrenado cargado desde {model_path}')
-            self.freeze_conv_layers()  # Congelar las capas convolucionales después de cargar el modelo preentrenado
+            #self.freeze_conv_layers()  # Congelar las capas convolucionales después de cargar el modelo preentrenado
         except Exception as e:
             logging.error(f'Error al cargar el modelo preentrenado: {e}')
 
