@@ -198,7 +198,8 @@ def main():
         'TRAIN_FREQUENCY': TRAIN_FREQUENCY,
         'MAX_STEPS_EPISODE': MAX_STEPS_EPISODE,
         'NEGATIVE_REWARD': NEGATIVE_REWARD,
-        'DIFFICULTY': DIFFICULTY
+        'DIFFICULTY': DIFFICULTY,
+        'FROZEN_CONV': False
     }
     save_hyperparameters(hyperparameters, timestamp, LOCAL_FOLDER)
 
