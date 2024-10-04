@@ -18,6 +18,8 @@ El código principal se organiza en las siguientes carpetas:
   - **curricular**: Incluye scripts, resultados de entrenamiento para cada uno de los juegos usando aprendizaje curricular
     - `curricular.py`: Script para realizar transferencias de aprendizaje curricular.
 
+   Para cada uno de los scripts de transferencia de aprendizaje y el modelo base, se generó una carpeta de resultados de entrenamiento donde se puede encontrar el log de entrenamiento, los gráficos de entrenamiento y los hiperparámetros utilizados
+
 ## Requisitos Previos
 Para ejecutar este proyecto, necesitarás las siguientes dependencias:
 
