@@ -40,7 +40,7 @@ BATCH_SIZE = 256
 TRAINING_START = 100000
 INITIAL_EPSILON = 0.05    
 FINAL_EPSILON = 0.05
-EXPLORATION_STEPS = 1000000
+EXPLORATION_STEPS = 1000
 UPDATE_TARGET_FREQUENCY = 1000
 SAVE_FREQUENCY = 1000000
 EVALUATION_FREQUENCY = 500000
@@ -105,9 +105,9 @@ class TransferDQNAgent:
         if reinitialize_dense_layers:
             nn.init.xavier_uniform_(self.q_network[-3].weight)
             nn.init.zeros_(self.q_network[-3].bias)
-
-        # Crear una nueva capa densa para el espacio de acciones del juego de destino
-        self.q_network[-1] = nn.Linear(512, self.action_size).to(self.device)
+            # Crear una nueva capa densa para el espacio de acciones del juego de destino
+            self.q_network[-1] = nn.Linear(512, self.action_size).to(self.device)
+        
         
         self.target_q_network = self.build_model().to(self.device)
         self.update_target_model()
