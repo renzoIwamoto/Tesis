@@ -22,19 +22,15 @@ def get_args():
     parser.add_argument('--base_model_game', type=str, required=True, help='Nombre del juego del modelo base')
     parser.add_argument('--base_model_path', type=str, required=True, help='Ruta del modelo preentrenado')
     parser.add_argument('--freeze_conv_layers', action='store_true', help='Congelar capas convolucionales')
+    parser.add_argument('--reinitialize_dense_layers', action='store_true', help='Reinicializar las capas densas')
     return parser.parse_args()
 
 args = get_args()
 
-### modelo fuente y objetivo
-### transferir el mejor modelo de los 3 entrenados en el modelo fuente
-### en el juego objetivo entrenarlo 3 veces con el mejor modelo fuente
-### concentrarme en la parte de congelación de pesos
-
 # Configuración del entorno y parámetros
 ENV_NAME = args.env_name
-BASE_MODEL_GAME = args.base_model_game  # Juego del que se carga el modelo base
-BASE_MODEL_PATH = args.base_model_path  # Ruta del modelo preentrenado
+BASE_MODEL_GAME = args.base_model_game
+BASE_MODEL_PATH = args.base_model_path
 GAME_NAME = ENV_NAME.split('-')[0].replace('/', '_')
 FRAME_STACK = 4
 GAMMA = 0.99
@@ -44,13 +40,13 @@ BATCH_SIZE = 256
 TRAINING_START = 100000
 INITIAL_EPSILON = 1    
 FINAL_EPSILON = 0.05
-EXPLORATION_STEPS = 1000000  # 500000 - 250000
+EXPLORATION_STEPS = 1000000
 UPDATE_TARGET_FREQUENCY = 1000
 SAVE_FREQUENCY = 1000000
 EVALUATION_FREQUENCY = 500000
 NUM_EVALUATION_EPISODES = 5
 EPISODES = 100000
-TOTAL_STEPS_LIMIT = 5000000 # bajado a la mitad
+TOTAL_STEPS_LIMIT = 5000000
 TRAIN_FREQUENCY = 16
 MAX_STEPS_EPISODE = 50000
 NEGATIVE_REWARD = 0
@@ -86,7 +82,7 @@ logging.basicConfig(level=logging.INFO,
                     ])
 
 class TransferDQNAgent:
-    def __init__(self, state_shape, action_size, base_model_game, base_model_path, freeze_conv_layers, device_id=0):
+    def __init__(self, state_shape, action_size, base_model_game, base_model_path, freeze_conv_layers, reinitialize_dense_layers, device_id=0):
         self.state_shape = state_shape
         self.action_size = action_size
         self.memory = deque(maxlen=MEMORY_SIZE)
@@ -105,9 +101,11 @@ class TransferDQNAgent:
                 if 'conv' in name:
                     param.requires_grad = False
 
-        # Reinicializar la penúltima capa lineal
-        nn.init.xavier_uniform_(self.q_network[-3].weight)
-        nn.init.zeros_(self.q_network[-3].bias)
+        # Opción para reinicializar las capas densas
+        if reinitialize_dense_layers:
+            nn.init.xavier_uniform_(self.q_network[-3].weight)
+            nn.init.zeros_(self.q_network[-3].bias)
+
         # Crear una nueva capa densa para el espacio de acciones del juego de destino
         self.q_network[-1] = nn.Linear(512, self.action_size).to(self.device)
         
@@ -156,7 +154,6 @@ class TransferDQNAgent:
             logging.info(f'Modelo preentrenado cargado desde {model_path}')
         except Exception as e:
             logging.error(f'Error al cargar el modelo preentrenado: {e}')
-
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
@@ -244,7 +241,7 @@ def main():
     state_shape = (FRAME_STACK, 84, 84)
     action_size = env.action_space.n
 
-    agent = TransferDQNAgent(state_shape, action_size, BASE_MODEL_GAME, BASE_MODEL_PATH, args.freeze_conv_layers, DEVICE)
+    agent = TransferDQNAgent(state_shape, action_size, BASE_MODEL_GAME, BASE_MODEL_PATH, args.freeze_conv_layers, args.reinitialize_dense_layers, DEVICE)
     stacked_frames = deque(maxlen=FRAME_STACK)
 
     scores = []
