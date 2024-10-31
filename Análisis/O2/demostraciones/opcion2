@@ -1,0 +1,98 @@
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Datos de los juegos y modelos
+juegos = ['Pong', 'Breakout', 'Frogger', 'Q*bert', 'Alien', 'Mario Bros']
+modelos = ['Entrenamiento 1', 'Entrenamiento 2', 'Entrenamiento 3']
+
+# Datos de aprendizaje por demostraciones y modelo base
+puntuacion_1 = {
+    'Pong': [11.07, 14.63, 17.7],
+    'Breakout': [75.07, 33.17, 24.93],
+    'Frogger': [40.1, 91.73, 136.43],
+    'Q*bert': [1035.83, 546.67, 2687.5],
+    'Alien': [252.0, 1025.33, 376.33],
+    'Mario Bros': [3093.33, 4080.0, 3493.33]
+}
+desviacion_1 = {
+    'Pong': [5.53, 3.36, 2.0],
+    'Breakout': [112.43, 53.38, 6.71],
+    'Frogger': [47.25, 36.24, 80.27],
+    'Q*bert': [1150.93, 144.87, 1854.86],
+    'Alien': [120.76, 508.88, 147.61],
+    'Mario Bros': [1542.06, 1769.07, 1482.1]
+}
+puntuacion_2 = {
+    'Pong': [19.5, 19.27, 19.8],
+    'Breakout': [188.9, 166.03, 170.03],
+    'Frogger': [263.26, 247.97, 254.83],
+    'Q*bert': [1342.5, 1641.67, 3957.5],
+    'Alien': [1784.67, 1317.67, 1023.67],
+    'Mario Bros': [9466.67, 12506.07, 8613.33]
+}
+desviacion_2 = {
+    'Pong': [1.43, 0.99, 1.19],
+    'Breakout': [113.13, 152.17, 138.33],
+    'Frogger': [101.26, 69.79, 100.79],
+    'Q*bert': [646.89, 290.64, 1555.85],
+    'Alien': [554.97, 381.77, 168.37],
+    'Mario Bros': [4084.88, 4625.65, 4119.2]
+}
+puntuacion_entrenado = {
+    'Pong': [17.67, 18.22, 18.47],
+    'Breakout': [95.03, 114.5, 104.88],
+    'Frogger': [134.31, 96.58, 160.25],
+    'Q*bert': [3118.75, 2689.84, 2981.25],
+    'Alien': [1067.77, 1333.33, 1156.63],
+    'Mario Bros': [4746.67, 5015.38, 4380.0]
+}
+desviacion_entrenado = {
+    'Pong': [1.68, 2.18, 1.92],
+    'Breakout': [125.97, 133.85, 130.36],
+    'Frogger': [68.85, 48.21, 77.03],
+    'Q*bert': [1966.37, 1931.39, 1957.17],
+    'Alien': [614.12, 765.51, 720.57],
+    'Mario Bros': [2607.12, 2137.63, 1762.14]
+}
+
+# Función para graficar comparativamente sin episodios de convergencia
+def plot_error_bars_comparative(puntuacion_1, puntuacion_2, desviacion_1, desviacion_2, puntuacion_entrenado, desviacion_entrenado, title):
+    fig, axs = plt.subplots(2, 3, figsize=(20, 12))
+    fig.suptitle(title, fontsize=16)
+
+    for i, juego in enumerate(juegos):
+        ax = axs[i // 3, i % 3]
+        
+        # Datos
+        p1 = puntuacion_1[juego]
+        p2 = puntuacion_2[juego]
+        p3 = puntuacion_entrenado[juego]
+        d1 = desviacion_1[juego]
+        d2 = desviacion_2[juego]
+        d3 = desviacion_entrenado[juego]
+        
+        # Posiciones de las barras
+        x = np.arange(len(modelos))
+        width = 0.25
+
+        # Barras
+        ax.bar(x - width, p1, width, yerr=d1, label='100% Agente entrenado por demostraciones', capsize=3, color='skyblue')
+        ax.bar(x, p2, width, yerr=d2, label='Modelo Base', capsize=3, color='salmon')
+        ax.bar(x + width, p3, width, yerr=d3, label='50% Agente Experto y 50% Agente entrenado', capsize=3, color='lightgreen')
+        
+        # Etiquetas y configuración
+        ax.set_title(juego, fontsize=10)
+        ax.set_xticks(x)
+        ax.set_xticklabels(modelos)
+        if i % 3 == 0:  # Solo en la primera columna
+            ax.set_ylabel('Puntuación Media')
+        
+        # Ubicar leyenda dentro de cada subgráfico, en la esquina superior izquierda
+        ax.legend(loc='upper left', fontsize=8, frameon=True)
+
+    plt.tight_layout(rect=[0, 0, 1, 0.96], h_pad=3.5, w_pad=3.5)  # Espacio entre gráficos
+    return fig
+
+# Llamada a la función para graficar
+plot_error_bars_comparative(puntuacion_1, puntuacion_2, desviacion_1, desviacion_2, puntuacion_entrenado, desviacion_entrenado, 'Comparación de Aprendizaje por Demostraciones')
+plt.show()
