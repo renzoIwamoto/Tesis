@@ -1,0 +1,15 @@
+2024-10-31 12:32:14,044 - INFO - Modelo preentrenado cargado desde /data/riwamoto/ALE_MarioBros_results/models/dqn_model_ALE_MarioBros_final_20240831_094717.pth
+2024-10-31 12:32:14,928 - INFO - Ep.: 0, Score: 0.0, e: 0.05, Steps: 331, Avg Q-val: 37.05, replay: 331, Mem Usage: 4.9%
+2024-10-31 12:32:15,617 - INFO - Ep.: 1, Score: 0.0, e: 0.05, Steps: 392, Avg Q-val: 29.60, replay: 723, Mem Usage: 5.0%
+2024-10-31 12:32:16,203 - INFO - Ep.: 2, Score: 0.0, e: 0.05, Steps: 573, Avg Q-val: 33.04, replay: 1296, Mem Usage: 5.0%
+2024-10-31 12:32:17,266 - INFO - Ep.: 3, Score: 1600.0, e: 0.05, Steps: 1117, Avg Q-val: 30.36, replay: 2413, Mem Usage: 5.1%
+2024-10-31 12:32:17,727 - INFO - Ep.: 4, Score: 0.0, e: 0.05, Steps: 431, Avg Q-val: 29.60, replay: 2844, Mem Usage: 5.1%
+2024-10-31 12:32:18,721 - INFO - Ep.: 5, Score: 0.0, e: 0.05, Steps: 1042, Avg Q-val: 27.68, replay: 3886, Mem Usage: 5.2%
+2024-10-31 12:32:19,894 - INFO - Ep.: 6, Score: 800.0, e: 0.05, Steps: 1256, Avg Q-val: 31.42, replay: 5142, Mem Usage: 5.3%
+2024-10-31 12:32:20,581 - INFO - Ep.: 7, Score: 0.0, e: 0.05, Steps: 690, Avg Q-val: 27.81, replay: 5832, Mem Usage: 5.4%
+2024-10-31 12:32:21,200 - INFO - Ep.: 8, Score: 0.0, e: 0.05, Steps: 614, Avg Q-val: 28.62, replay: 6446, Mem Usage: 5.4%
+2024-10-31 12:32:22,081 - INFO - Ep.: 9, Score: 0.0, e: 0.05, Steps: 918, Avg Q-val: 28.80, replay: 7364, Mem Usage: 5.5%
+2024-10-31 12:32:23,042 - INFO - Ep.: 10, Score: 0.0, e: 0.05, Steps: 1004, Avg Q-val: 29.32, replay: 8368, Mem Usage: 5.6%
+2024-10-31 12:32:23,434 - INFO - Ep.: 11, Score: 0.0, e: 0.05, Steps: 360, Avg Q-val: 41.30, replay: 8728, Mem Usage: 5.6%
+2024-10-31 12:32:24,302 - INFO - Ep.: 12, Score: 0.0, e: 0.05, Steps: 898, Avg Q-val: 29.74, replay: 9626, Mem Usage: 5.7%
+2024-10-31 12:32:24,757 - INFO - Ep.: 13, Score: 0.0, e: 0.05, Steps: 427, Avg Q-val: 29.08, replay: 10053, Mem Usage: 5.7%

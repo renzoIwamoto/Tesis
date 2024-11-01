@@ -1,0 +1,14 @@
+2024-10-31 12:36:06,356 - INFO - Modelo preentrenado cargado desde /data/riwamoto/ALE_Frogger_results/models/dqn_model_ALE_Frogger_final_20240829_113617.pth
+2024-10-31 12:36:07,728 - INFO - Ep.: 0, Score: 3.0, e: 0.05, Steps: 799, Avg Q-val: 2.71, replay: 799, Mem Usage: 10.1%
+2024-10-31 12:36:08,776 - INFO - Ep.: 1, Score: 2.0, e: 0.05, Steps: 699, Avg Q-val: 2.76, replay: 1498, Mem Usage: 10.3%
+2024-10-31 12:36:09,484 - INFO - Ep.: 2, Score: 3.0, e: 0.05, Steps: 640, Avg Q-val: 2.65, replay: 2138, Mem Usage: 10.5%
+2024-10-31 12:36:10,105 - INFO - Ep.: 3, Score: 3.0, e: 0.05, Steps: 532, Avg Q-val: 2.65, replay: 2670, Mem Usage: 10.6%
+2024-10-31 12:36:10,728 - INFO - Ep.: 4, Score: 3.0, e: 0.05, Steps: 543, Avg Q-val: 2.68, replay: 3213, Mem Usage: 10.8%
+2024-10-31 12:36:11,281 - INFO - Ep.: 5, Score: 3.0, e: 0.05, Steps: 476, Avg Q-val: 2.79, replay: 3689, Mem Usage: 10.9%
+2024-10-31 12:36:12,217 - INFO - Ep.: 6, Score: 3.0, e: 0.05, Steps: 865, Avg Q-val: 2.69, replay: 4554, Mem Usage: 11.1%
+2024-10-31 12:36:12,802 - INFO - Ep.: 7, Score: 3.0, e: 0.05, Steps: 496, Avg Q-val: 2.60, replay: 5050, Mem Usage: 11.3%
+2024-10-31 12:36:13,490 - INFO - Ep.: 8, Score: 3.0, e: 0.05, Steps: 607, Avg Q-val: 2.65, replay: 5657, Mem Usage: 11.4%
+2024-10-31 12:36:14,665 - INFO - Ep.: 9, Score: 3.0, e: 0.05, Steps: 1122, Avg Q-val: 2.61, replay: 6779, Mem Usage: 11.7%
+2024-10-31 12:36:15,869 - INFO - Ep.: 10, Score: 3.0, e: 0.05, Steps: 1139, Avg Q-val: 2.75, replay: 7918, Mem Usage: 12.0%
+2024-10-31 12:36:16,398 - INFO - Ep.: 11, Score: 8.0, e: 0.05, Steps: 456, Avg Q-val: 2.61, replay: 8374, Mem Usage: 12.1%
+2024-10-31 12:36:17,281 - INFO - Ep.: 12, Score: 3.0, e: 0.05, Steps: 801, Avg Q-val: 2.53, replay: 9175, Mem Usage: 12.3%
